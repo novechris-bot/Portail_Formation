@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>PORTAIL FORMATION TPG</title>
+    <meta name="description" content="Portail officiel de formation des Transports Publics Genevois (TPG) : 7 modules techniques opérationnels, gestion certifiée des formateurs et authentification sécurisée." />
+    <meta property="og:title" content="Portail Formation TPG - PWA Sécurisée" />
+    <meta property="og:description" content="Portail officiel de formation des Transports Publics Genevois (TPG) : 7 modules techniques opérationnels, gestion certifiée des formateurs et authentification sécurisée." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- PWA Settings & Apple Touch Icons -->
+    <meta name="theme-color" content="#FD5312" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Portail TPG" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+
+    <style>
+      @font-face {
+        font-family: 'HelveticaNeue LT COM 65 MD';
+        src: local('HelveticaNeue LT COM 65 MD'), local('Helvetica Neue LT Com 65 Md'), local('Helvetica Neue'), local('Helvetica'), local('Arial');
+        font-weight: 500 700;
+      }
+      header, .font-tpg {
+        font-family: 'HelveticaNeue LT COM 65 MD', 'Helvetica Neue LT Com 65 Md', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      }
+    </style>
+  </head>
+  <body class="bg-[#f0f0f0] text-[#111827] antialiased selection:bg-[#FD5312] selection:text-white min-h-screen font-tpg">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

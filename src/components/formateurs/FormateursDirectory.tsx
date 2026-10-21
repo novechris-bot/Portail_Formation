@@ -1,0 +1,800 @@
+import React, { useState, useMemo } from 'react';
+import { Formateur } from '../../types/formateur';
+import { FormateurDetailModal } from './FormateurDetailModal';
+import { AuditDiscrepanciesModal } from './AuditDiscrepanciesModal';
+import { TramLogoBadge, AbtbLogoBadge, FormateurVehicleLogos } from '../common/VehicleBadges';
+import { validerEmail, validerEtFormaterMobile } from '../../utils/tpgHelpers';
+import {
+  Search,
+  Plus,
+  ArrowUpDown,
+  Trash2,
+  FileSpreadsheet,
+  ShieldAlert,
+  Check,
+  X,
+  AlertTriangle,
+  RotateCcw
+} from 'lucide-react';
+
+interface Props {
+  formateurs: Formateur[];
+  onRefresh: () => Promise<void>;
+  onCreate: (data: Partial<Formateur>) => Promise<void>;
+  onUpdate: (id: string, data: Partial<Formateur>) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  onResetDefaults: () => Promise<void>;
+}
+
+export const FormateursDirectory: React.FC<Props> = ({
+  formateurs,
+  onRefresh,
+  onCreate,
+  onUpdate,
+  onDelete,
+  onResetDefaults
+}) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'tram' | 'abtb'>('all');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Quick Add state (matching screenshot)
+  const [newNom, setNewNom] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newMobile, setNewMobile] = useState('');
+  const [newIsTramway, setNewIsTramway] = useState(false);
+  const [quickAddSubmitting, setQuickAddSubmitting] = useState(false);
+  const [actionFeedback, setActionFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // Inline edit state
+  const [inlineEditingId, setInlineEditingId] = useState<string | null>(null);
+  const [editNom, setEditNom] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editMobile, setEditMobile] = useState('');
+  const [editIsTramway, setEditIsTramway] = useState(false);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // Modals state
+  const [selectedFormateur, setSelectedFormateur] = useState<Formateur | null>(null);
+  const [auditModalOpen, setAuditModalOpen] = useState(false);
+
+  // Deletion confirmation modal
+  const [deleteCandidate, setDeleteCandidate] = useState<Formateur | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Reset confirmation modal
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+
+  const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
+    setActionFeedback({ message, type });
+    setTimeout(() => {
+      setActionFeedback(null);
+    }, 4000);
+  };
+
+  // Filter across nom, e-mail, mobile
+  const filteredFormateurs = useMemo(() => {
+    let list = [...formateurs];
+
+    if (searchQuery.trim()) {
+      const q = searchQuery
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase();
+
+      list = list.filter((f) => {
+        const nom = (f.nomComplet || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const email = (f.email || '').toLowerCase();
+        const mobile = (f.mobile || f.telephone || '').replace(/\s+/g, '');
+        const qClean = q.replace(/\s+/g, '');
+
+        return nom.includes(q) || email.includes(q) || mobile.includes(qClean);
+      });
+    }
+
+    if (filterType === 'tram') {
+      list = list.filter((f) => f.isTramway);
+    }
+
+    list.sort((a, b) => {
+      const comp = a.nomComplet.localeCompare(b.nomComplet, 'fr', { sensitivity: 'base' });
+      return sortOrder === 'desc' ? -comp : comp;
+    });
+
+    return list;
+  }, [formateurs, searchQuery, filterType, sortOrder]);
+
+  const tramCount = useMemo(() => formateurs.filter((f) => f.isTramway).length, [formateurs]);
+
+  const handleQuickAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newNom.trim()) {
+      showNotification('Veuillez renseigner un Nom & Prénom.', 'error');
+      return;
+    }
+    setQuickAddSubmitting(true);
+    try {
+      await onCreate({
+        nom: newNom.trim(),
+        email: newEmail.trim(),
+        mobile: newMobile.trim(),
+        isTramway: newIsTramway,
+        isRailsGlissants: newIsTramway // Tram qualified are also aligned
+      });
+      showNotification(`Formateur ${newNom.trim()} ajouté avec succès à la liste.`);
+      setNewNom('');
+      setNewEmail('');
+      setNewMobile('');
+      setNewIsTramway(false);
+    } catch (err: any) {
+      showNotification(err?.message || 'Erreur lors de l’ajout du formateur.', 'error');
+    } finally {
+      setQuickAddSubmitting(false);
+    }
+  };
+
+  const startInlineEdit = (f: Formateur) => {
+    setInlineEditingId(f.id);
+    setEditNom(f.nomComplet);
+    setEditEmail(f.email || '');
+    setEditMobile(f.mobile || f.telephone || '');
+    setEditIsTramway(Boolean(f.isTramway));
+  };
+
+  const cancelInlineEdit = () => {
+    setInlineEditingId(null);
+  };
+
+  const saveInlineEdit = async (id: string) => {
+    if (!editNom.trim()) {
+      showNotification('Le nom ne peut pas être vide.', 'error');
+      return;
+    }
+    setIsSavingEdit(true);
+    try {
+      await onUpdate(id, {
+        nom: editNom.trim(),
+        email: editEmail.trim(),
+        mobile: editMobile.trim(),
+        telephone: editMobile.trim(),
+        isTramway: editIsTramway,
+        isRailsGlissants: editIsTramway
+      });
+      showNotification(`Formateur ${editNom.trim()} mis à jour avec succès.`);
+      setInlineEditingId(null);
+    } catch (err: any) {
+      showNotification(err?.message || 'Erreur lors de la mise à jour.', 'error');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteCandidate) return;
+    setIsDeleting(true);
+    try {
+      await onDelete(deleteCandidate.id);
+      showNotification(`Formateur ${deleteCandidate.nomComplet} supprimé.`);
+      setDeleteCandidate(null);
+    } catch (err: any) {
+      showNotification(err?.message || 'Erreur lors de la suppression.', 'error');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const confirmReset = async () => {
+    setIsResetting(true);
+    try {
+      await onResetDefaults();
+      showNotification('Liste des formateurs réinitialisée selon la source officielle.');
+      setShowResetConfirm(false);
+    } catch (err: any) {
+      showNotification(err?.message || 'Erreur lors de la réinitialisation.', 'error');
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  const exportCSV = () => {
+    const headers = ['ID', 'Nom & Prénom', 'E-mail TPG', 'Numéro Portable', 'Habilité TRAM', 'Habilité AB/TB'];
+    const rows = filteredFormateurs.map((f) => [
+      `"${f.id}"`,
+      `"${f.nomComplet}"`,
+      `"${f.email || ''}"`,
+      `"${f.mobile || f.telephone || ''}"`,
+      f.isTramway ? 'OUI' : 'NON',
+      'OUI'
+    ]);
+
+    const csvContent = '\uFEFF' + [headers.join(';'), ...rows.map((r) => r.join(';'))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `formateurs_tpg_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <section className="p-4 sm:p-6" aria-label="8. Annuaire & Gestion des Formateurs TPG">
+      {/* Module Header with vertical orange bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-l-4 border-[#FD5312] pl-3 mb-5">
+        <div>
+          <h2
+            className="text-lg font-black uppercase text-[#FD5312] tracking-wide"
+            style={{ fontFamily: "'HelveticaNeue LT COM 65 MD', 'Helvetica Neue LT Com 65 Md', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}
+          >
+            8. ANNUAIRE & GESTION DES FORMATEURS TPG
+          </h2>
+          <p className="text-xs text-gray-500 font-semibold mt-0.5">
+            {formateurs.length} formateurs enregistrés • {tramCount} certifiés TRAM • {formateurs.length} certifiés AB/TB
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setAuditModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-xs font-bold transition cursor-pointer"
+            title="Consulter l'audit des données sources"
+          >
+            <ShieldAlert className="w-3.5 h-3.5 text-[#FD5312]" />
+            <span className="hidden sm:inline">Audit Sources</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={exportCSV}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg text-xs font-bold transition cursor-pointer"
+            title="Exporter en CSV"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="hidden sm:inline">CSV</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowResetConfirm(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-red-50 hover:text-red-700 text-gray-600 rounded-lg text-xs font-bold transition cursor-pointer"
+            title="Réinitialiser la liste officielle v20"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">Réinitialiser</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Floating feedback alert */}
+      {actionFeedback && (
+        <div
+          className={`mb-4 p-3 rounded-lg text-xs font-bold flex items-center justify-between shadow-xs transition animate-in fade-in ${
+            actionFeedback.type === 'success'
+              ? 'bg-emerald-50 border border-emerald-300 text-emerald-800'
+              : 'bg-red-50 border border-red-300 text-red-800'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {actionFeedback.type === 'success' ? (
+              <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+            ) : (
+              <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+            )}
+            <span>{actionFeedback.message}</span>
+          </div>
+          <button
+            onClick={() => setActionFeedback(null)}
+            className="text-gray-400 hover:text-gray-700 p-0.5 cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Formulaire d'ajout rapide (Exact styling from user screenshot) */}
+      <div className="bg-[#f9fafb] border border-[#e5e7eb] rounded-xl p-4 sm:p-5 mb-5 shadow-xs">
+        <h3
+          className="text-sm font-bold text-[#FD5312] uppercase tracking-wide mb-3"
+          style={{ fontFamily: "'HelveticaNeue LT COM 65 MD', 'Helvetica Neue LT Com 65 Md', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}
+        >
+          Ajouter un nouveau formateur
+        </h3>
+        <form onSubmit={handleQuickAdd}>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+            <div>
+              <label
+                className="block text-xs font-bold text-gray-700 mb-1"
+                style={{ fontFamily: "'HelveticaNeue LT COM 65 MD', 'Helvetica Neue LT Com 65 Md', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}
+              >
+                Nom & Prénom <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={newNom}
+                onChange={(e) => setNewNom(e.target.value)}
+                placeholder="Ex: Jean DUPONT"
+                className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:border-[#FD5312] focus:ring-2 focus:ring-[#FD5312]/20 outline-none transition"
+              />
+            </div>
+
+            <div>
+              <label
+                className="block text-xs font-bold text-gray-700 mb-1"
+                style={{ fontFamily: "'HelveticaNeue LT COM 65 MD', 'Helvetica Neue LT Com 65 Md', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}
+              >
+                E-mail TPG
+              </label>
+              <input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="dupont.j@tpg.ch"
+                className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:border-[#FD5312] focus:ring-2 focus:ring-[#FD5312]/20 outline-none transition"
+              />
+            </div>
+
+            <div>
+              <label
+                className="block text-xs font-bold text-gray-700 mb-1"
+                style={{ fontFamily: "'HelveticaNeue LT COM 65 MD', 'Helvetica Neue LT Com 65 Md', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}
+              >
+                Portable
+              </label>
+              <input
+                type="text"
+                value={newMobile}
+                onChange={(e) => setNewMobile(e.target.value)}
+                placeholder="+41 79 000 00 00"
+                className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:border-[#FD5312] focus:ring-2 focus:ring-[#FD5312]/20 outline-none transition font-mono"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-bold text-gray-700">
+              <input
+                type="checkbox"
+                checked={newIsTramway}
+                onChange={(e) => setNewIsTramway(e.target.checked)}
+                className="w-4 h-4 accent-[#FD5312] rounded cursor-pointer"
+              />
+              <span className="flex items-center gap-1.5">
+                <span>Habilité Tramway :</span>
+                {newIsTramway ? (
+                  <>
+                    <TramLogoBadge />
+                    <AbtbLogoBadge />
+                  </>
+                ) : (
+                  <span className="text-gray-500 font-normal">
+                    (Par défaut : <AbtbLogoBadge /> uniquement)
+                  </span>
+                )}
+              </span>
+            </label>
+
+            <button
+              type="submit"
+              disabled={quickAddSubmitting}
+              className="px-5 py-2.5 bg-[#FD5312] hover:bg-[#e04508] active:scale-95 text-white font-extrabold uppercase text-xs rounded-lg shadow-sm hover:shadow transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              style={{ fontFamily: "'HelveticaNeue LT COM 65 MD', 'Helvetica Neue LT Com 65 Md', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}
+            >
+              <Plus className="w-4 h-4" />
+              <span>{quickAddSubmitting ? 'Ajout en cours...' : '+ AJOUTER À LA LISTE'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Barre de Recherche et Filtres (Exact layout from user screenshot) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 no-print">
+        <div>
+          <label
+            className="block text-xs font-bold text-gray-700 mb-1"
+            style={{ fontFamily: "'HelveticaNeue LT COM 65 MD', 'Helvetica Neue LT Com 65 Md', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}
+          >
+            Rechercher un formateur
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+              <Search className="w-4 h-4" />
+            </div>
+            <input
+              type="text"
+              id="searchAnnuaire"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Nom, e-mail, mobile..."
+              className="w-full pl-9 pr-14 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:border-[#FD5312] focus:ring-2 focus:ring-[#FD5312]/20 outline-none transition"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-xs text-gray-400 hover:text-gray-600 font-bold cursor-pointer"
+              >
+                Effacer
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col justify-end">
+          <div className="flex flex-wrap items-center justify-between text-xs text-gray-500 pb-1 gap-2">
+            <span className="italic text-[12px] text-gray-500">
+              Les modifications ou ajouts mettent à jour automatiquement l'application.
+            </span>
+            <div className="flex items-center gap-1.5 ml-auto">
+              <button
+                type="button"
+                onClick={() => setFilterType('all')}
+                className={`px-2.5 py-1 rounded text-xs font-bold transition cursor-pointer ${
+                  filterType === 'all'
+                    ? 'bg-[#FD5312] text-white shadow-xs'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Tous ({formateurs.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterType('tram')}
+                className={`px-2.5 py-1 rounded text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                  filterType === 'tram'
+                    ? 'bg-[#FD5312] text-white shadow-xs'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <span>Tram ({tramCount})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="p-1 text-gray-500 hover:text-gray-800 transition"
+                title={`Tri alphabétique (${sortOrder === 'asc' ? 'A à Z' : 'Z à A'})`}
+              >
+                <ArrowUpDown className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* TABLE VIEW (Exact design matching screenshot image_835315b1.png) */}
+      <div className="w-full overflow-x-auto border border-gray-200 rounded-xl bg-white shadow-xs">
+        <table className="w-full border-collapse text-left text-sm">
+          <thead>
+            <tr className="bg-gray-100 border-b-2 border-gray-200 text-xs font-bold text-gray-700">
+              <th
+                className="p-3.5"
+                style={{ fontFamily: "'HelveticaNeue LT COM 65 MD', 'Helvetica Neue LT Com 65 Md', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}
+              >
+                Nom & Prénom
+              </th>
+              <th
+                className="p-3.5"
+                style={{ fontFamily: "'HelveticaNeue LT COM 65 MD', 'Helvetica Neue LT Com 65 Md', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}
+              >
+                Adresse E-mail TPG
+              </th>
+              <th
+                className="p-3.5"
+                style={{ fontFamily: "'HelveticaNeue LT COM 65 MD', 'Helvetica Neue LT Com 65 Md', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}
+              >
+                Numéro Portable
+              </th>
+              <th
+                className="p-3.5 no-print w-44 text-right"
+                style={{ fontFamily: "'HelveticaNeue LT COM 65 MD', 'Helvetica Neue LT Com 65 Md', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}
+              >
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {filteredFormateurs.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="p-8 text-center text-gray-500 text-xs">
+                  Aucun formateur trouvé pour « {searchQuery} ».
+                </td>
+              </tr>
+            ) : (
+              filteredFormateurs.map((f) => {
+                const emailOk = validerEmail(f.email);
+                const { estValide: mobileOk, formate: mobileFormate } = validerEtFormaterMobile(f.mobile || f.telephone);
+                const isEditingThis = inlineEditingId === f.id;
+
+                return (
+                  <tr key={f.id} className="hover:bg-gray-50/90 transition">
+                    {/* Nom & Prénom + Logos TRAM / AB/TB */}
+                    <td className="p-3.5 font-semibold text-gray-900">
+                      {isEditingThis ? (
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            value={editNom}
+                            onChange={(e) => setEditNom(e.target.value)}
+                            className="w-full p-2 border-2 border-[#FD5312] rounded-lg text-sm bg-white outline-none font-semibold"
+                            placeholder="Nom & Prénom"
+                            autoFocus
+                          />
+                          <div className="flex items-center gap-2 text-xs">
+                            <label className="flex items-center gap-1.5 cursor-pointer font-bold text-gray-700">
+                              <input
+                                type="checkbox"
+                                checked={editIsTramway}
+                                onChange={(e) => setEditIsTramway(e.target.checked)}
+                                className="w-3.5 h-3.5 accent-[#FD5312] rounded"
+                              />
+                              <span>Habilité TRAM</span>
+                            </label>
+                            <span className="text-gray-400">|</span>
+                            <span className="text-gray-500 flex items-center gap-1">
+                              Logos attribués :
+                              {editIsTramway ? (
+                                <>
+                                  <TramLogoBadge />
+                                  <AbtbLogoBadge />
+                                </>
+                              ) : (
+                                <AbtbLogoBadge />
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedFormateur(f)}
+                            className="text-left font-semibold text-gray-900 hover:text-[#FD5312] transition cursor-pointer"
+                            title="Cliquer pour afficher la fiche complète"
+                          >
+                            {f.nomComplet}
+                          </button>
+
+                          {/* Logos TPG: 11 personnes TRAM -> TRAM + AB/TB. Autres -> AB/TB */}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {f.isTramway ? (
+                              <>
+                                <TramLogoBadge />
+                                <AbtbLogoBadge />
+                              </>
+                            ) : (
+                              <AbtbLogoBadge />
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Adresse E-mail TPG + badge ✓ / ✗ */}
+                    <td className="p-3.5 text-xs">
+                      {isEditingThis ? (
+                        <input
+                          type="email"
+                          value={editEmail}
+                          onChange={(e) => setEditEmail(e.target.value)}
+                          className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:border-[#FD5312]"
+                          placeholder="e-mail@tpg.ch"
+                        />
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          {f.email ? (
+                            <a
+                              href={`mailto:${f.email}`}
+                              className="text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                            >
+                              {f.email}
+                            </a>
+                          ) : (
+                            <span className="text-gray-400 italic">Non renseigné</span>
+                          )}
+                          <span
+                            className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-black text-white shrink-0 ${
+                              emailOk ? 'bg-[#16a34a]' : 'bg-[#dc2626]'
+                            }`}
+                            title={emailOk ? 'Adresse e-mail valide' : 'Format e-mail invalide'}
+                          >
+                            {emailOk ? '✓' : '✗'}
+                          </span>
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Numéro Portable + badge ✓ / ✗ */}
+                    <td className="p-3.5 text-xs">
+                      {isEditingThis ? (
+                        <input
+                          type="text"
+                          value={editMobile}
+                          onChange={(e) => setEditMobile(e.target.value)}
+                          className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:border-[#FD5312] font-mono"
+                          placeholder="+41 79 000 00 00"
+                        />
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          {f.mobile || f.telephone ? (
+                            <a
+                              href={`tel:${(f.mobile || f.telephone || '').replace(/\s+/g, '')}`}
+                              className="text-blue-600 hover:text-blue-800 hover:underline font-medium font-mono"
+                            >
+                              {mobileFormate || f.mobile || f.telephone}
+                            </a>
+                          ) : (
+                            <span className="text-gray-400 italic">Non renseigné</span>
+                          )}
+                          <span
+                            className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-black text-white shrink-0 ${
+                              mobileOk ? 'bg-[#16a34a]' : 'bg-[#dc2626]'
+                            }`}
+                            title={mobileOk ? 'Numéro de mobile suisse valide' : 'Format invalide (attendu +41 7x)'}
+                          >
+                            {mobileOk ? '✓' : '✗'}
+                          </span>
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Actions (ÉDITER / SUPPR. exactly as in screenshot) */}
+                    <td className="p-3.5 text-right no-print">
+                      {isEditingThis ? (
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            disabled={isSavingEdit}
+                            onClick={() => saveInlineEdit(f.id)}
+                            className="px-3 py-1.5 bg-[#16a34a] hover:bg-emerald-700 active:scale-95 text-white rounded text-xs font-black uppercase tracking-wider transition cursor-pointer shadow-xs disabled:opacity-50"
+                          >
+                            {isSavingEdit ? '...' : 'Enregistrer'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelInlineEdit}
+                            className="px-2.5 py-1.5 bg-gray-400 hover:bg-gray-500 active:scale-95 text-white rounded text-xs font-bold uppercase tracking-wider transition cursor-pointer"
+                          >
+                            Annuler
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => startInlineEdit(f)}
+                            className="px-3 py-1.5 bg-[#1d7ed2] hover:bg-[#186bb5] active:scale-95 text-white rounded text-[11px] font-black uppercase tracking-wider transition cursor-pointer shadow-xs"
+                            title="Modifier ce formateur"
+                          >
+                            ÉDITER
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteCandidate(f)}
+                            className="px-3 py-1.5 bg-[#dc2626] hover:bg-red-700 active:scale-95 text-white rounded text-[11px] font-black uppercase tracking-wider transition cursor-pointer shadow-xs"
+                            title="Supprimer ce formateur"
+                          >
+                            SUPPR.
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Confirmation Modal for Deletion */}
+      {deleteCandidate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+            <div className="bg-red-600 p-4 text-white flex items-center gap-2">
+              <Trash2 className="w-5 h-5 shrink-0" />
+              <h3 className="font-bold text-sm uppercase tracking-wide">
+                Confirmation de suppression
+              </h3>
+            </div>
+            <div className="p-5 space-y-3">
+              <p className="text-sm text-gray-700">
+                Êtes-vous certain de vouloir supprimer le formateur suivant du portail ?
+              </p>
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="font-black text-gray-900 text-base">{deleteCandidate.nomComplet}</div>
+                <div className="text-xs text-gray-600 mt-1">E-mail : {deleteCandidate.email || 'Non renseigné'}</div>
+                <div className="text-xs text-gray-600">Portable : {deleteCandidate.mobile || 'Non renseigné'}</div>
+                <div className="mt-2 flex items-center gap-1.5">
+                  <FormateurVehicleLogos isTramway={deleteCandidate.isTramway} />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500">
+                Cette suppression mettra à jour instantanément la liste des formateurs ainsi que l'ensemble des 7 modules techniques.
+              </p>
+            </div>
+            <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteCandidate(null)}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg text-xs font-bold transition cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-black uppercase transition cursor-pointer flex items-center gap-1.5 shadow-sm"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{isDeleting ? 'Suppression...' : 'Supprimer définitivement'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal for Resetting to Defaults */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
+            <div className="bg-[#FD5312] p-4 text-white flex items-center gap-2">
+              <RotateCcw className="w-5 h-5 shrink-0" />
+              <h3 className="font-bold text-sm uppercase tracking-wide">
+                Réinitialisation aux données sources
+              </h3>
+            </div>
+            <div className="p-5 space-y-3">
+              <p className="text-sm text-gray-700">
+                Voulez-vous réinitialiser l’annuaire des formateurs à l'état strict du fichier source officiel ?
+              </p>
+              <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg text-xs text-orange-950 space-y-1">
+                <div>• Restaure les 29 formateurs certifiés</div>
+                <div>• Restaure les 11 habilitations Tramway certifiées</div>
+                <div>• Réassigne les e-mails et numéros de mobile d'origine</div>
+              </div>
+            </div>
+            <div className="p-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowResetConfirm(false)}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg text-xs font-bold transition cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                disabled={isResetting}
+                onClick={confirmReset}
+                className="px-4 py-2 bg-[#FD5312] hover:bg-[#e04508] text-white rounded-lg text-xs font-black uppercase transition cursor-pointer shadow-sm"
+              >
+                {isResetting ? 'Réinitialisation...' : 'Confirmer la réinitialisation'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Individual Formateur Detail Modal */}
+      {selectedFormateur && (
+        <FormateurDetailModal
+          formateur={selectedFormateur}
+          onClose={() => setSelectedFormateur(null)}
+          onEdit={() => {
+            startInlineEdit(selectedFormateur);
+            setSelectedFormateur(null);
+          }}
+          canEdit={true}
+        />
+      )}
+
+      {/* Audit Sources Modal */}
+      {auditModalOpen && (
+        <AuditDiscrepanciesModal onClose={() => setAuditModalOpen(false)} />
+      )}
+    </section>
+  );
+};

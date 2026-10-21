@@ -1,0 +1,6 @@
+{
+  "name": "Portail Formation TPG - PWA Sécurisée",
+  "description": "Portail officiel de formation des Transports Publics Genevois (TPG) : 7 modules techniques opérationnels, gestion certifiée des formateurs et authentification sécurisée.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
