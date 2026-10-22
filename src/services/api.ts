@@ -4,6 +4,9 @@ import { AppConfig } from '../types/modules';
 
 const TOKEN_KEY = 'tpg_auth_token';
 
+const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+
+
 export function getStoredToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -27,7 +30,9 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const response = await fetch(endpoint, {
+  
+const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+
     ...options,
     headers
   });
