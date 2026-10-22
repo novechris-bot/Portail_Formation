@@ -6,7 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
   return {
-    plugins: [
+    base: '/Formation-de-portail/',plugins: [
       react(),
       tailwindcss(),
       VitePWA({
