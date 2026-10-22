@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Formateur } from '../../types/formateur';
 import { MailConfig } from '../../types/modules';
 import { fmt, MERCI, mailTo } from '../../utils/tpgHelpers';
-import { Printer, Mail, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Printer, Mail, RotateCcw, AlertTriangle, Info } from 'lucide-react';
 
 interface Props {
   formateurs: Formateur[];
@@ -19,6 +19,7 @@ export const Module4Abtb: React.FC<Props> = ({ formateurs, mailConfig }) => {
   const [date2, setDate2] = useState<string>('');
   const [selectedAb, setSelectedAb] = useState<string[]>([]);
   const [selectedTb, setSelectedTb] = useState<string[]>([]);
+  const [motif, setMotif] = useState<string>('');
   const [remarques, setRemarques] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -51,10 +52,11 @@ export const Module4Abtb: React.FC<Props> = ({ formateurs, mailConfig }) => {
       `• Dates : du ${d1} au ${d2}\n` +
       `• Formateur : ${formateur || '___'}\n` +
       `• Véhicules : ${vehText}\n` +
+      `• Motif : ${motif || 'Non précisé'}${motif ? ' (Réservation fin des voies 111 à 113 : 2 véhicules par voie)' : ''}\n` +
       `• Remarques : ${rem}` +
       MERCI
     );
-  }, [formateur, depot, date1, date2, selectedAb, selectedTb, remarques]);
+  }, [formateur, depot, date1, date2, selectedAb, selectedTb, motif, remarques]);
 
   const handleReset = () => {
     setFormateur('');
@@ -63,6 +65,7 @@ export const Module4Abtb: React.FC<Props> = ({ formateurs, mailConfig }) => {
     setDate2('');
     setSelectedAb([]);
     setSelectedTb([]);
+    setMotif('');
     setRemarques('');
     setErrorMsg(null);
   };
@@ -118,11 +121,25 @@ export const Module4Abtb: React.FC<Props> = ({ formateurs, mailConfig }) => {
             required
           >
             <option value="">-- Formateur --</option>
-            {formateurs.map((f) => (
-              <option key={f.id} value={f.nomComplet}>
-                {f.nomComplet} {f.isTramway ? '(TRAM + AB/TB)' : '(AB/TB)'}
-              </option>
-            ))}
+            {formateurs.map((f) => {
+              const tram = f.hasTram ?? f.isTramway;
+              const ab = f.hasAB ?? true;
+              const tb = f.hasTB ?? true;
+              let badge = '';
+              if (tram && ab && tb) badge = '(TRAM + AB/TB)';
+              else if (tram && ab) badge = '(TRAM + AB)';
+              else if (tram && tb) badge = '(TRAM + TB)';
+              else if (tram) badge = '(TRAM)';
+              else if (ab && tb) badge = '(AB/TB)';
+              else if (ab) badge = '(AB)';
+              else if (tb) badge = '(TB)';
+
+              return (
+                <option key={f.id} value={f.nomComplet}>
+                  {f.nomComplet} {badge}
+                </option>
+              );
+            })}
           </select>
         </div>
 
@@ -216,6 +233,28 @@ export const Module4Abtb: React.FC<Props> = ({ formateurs, mailConfig }) => {
             </label>
           ))}
         </div>
+      </div>
+
+      {/* Champ Motif (en dessous de Trolleybus) */}
+      <div className="mt-4">
+        <label className="block text-xs font-bold uppercase text-gray-700 mb-1">
+          Motif
+        </label>
+        <select
+          value={motif}
+          onChange={(e) => setMotif(e.target.value)}
+          className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:border-[#FD5312] focus:ring-2 focus:ring-[#FD5312]/20 outline-none font-medium text-gray-800"
+        >
+          <option value="">-- Choisir un motif (optionnel) --</option>
+          <option value="Examen de conduite OCVE">Examen de conduite OCVE</option>
+          <option value="Exercice de parcage">Exercice de parcage</option>
+        </select>
+        {Boolean(motif) && (
+          <div className="mt-2.5 p-3 bg-amber-50 border border-[#FD5312]/30 rounded-lg flex items-center gap-2.5 text-xs font-bold text-gray-900 shadow-xs animate-in fade-in">
+            <Info className="w-4 h-4 text-[#FD5312] shrink-0" />
+            <span>Réservation fin des voies 111 à 113 (2 véhicules par voie)</span>
+          </div>
+        )}
       </div>
 
       <div className="mt-3">

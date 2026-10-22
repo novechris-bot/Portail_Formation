@@ -29,7 +29,7 @@ export const Module3Tram: React.FC<Props> = ({ formateurs, mailConfig }) => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const tramFormateurs = useMemo(() => {
-    return formateurs.filter((f) => f.isTramway);
+    return formateurs.filter((f) => f.hasTram ?? f.isTramway);
   }, [formateurs]);
 
   const toggleVehicle = (v: string) => {

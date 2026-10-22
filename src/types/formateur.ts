@@ -5,6 +5,9 @@ export interface Formateur {
   nomComplet: string;
   acronyme: string;
   isTramway: boolean;
+  hasTram?: boolean;
+  hasAB?: boolean;
+  hasTB?: boolean;
   isRailsGlissants: boolean;
   email: string;
   mobile: string;

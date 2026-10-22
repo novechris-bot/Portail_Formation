@@ -14,8 +14,10 @@ export const FormateurFormModal: React.FC<Props> = ({ formateur, onClose, onSave
   const [prenom, setPrenom] = useState(formateur?.prenom || '');
   const [nom, setNom] = useState(formateur?.nom || '');
   const [acronyme, setAcronyme] = useState(formateur?.acronyme || '');
-  const [isTramway, setIsTramway] = useState(formateur?.isTramway || false);
-  const [isRailsGlissants, setIsRailsGlissants] = useState(formateur?.isRailsGlissants || false);
+  const [hasTram, setHasTram] = useState(formateur?.hasTram ?? formateur?.isTramway ?? false);
+  const [hasAB, setHasAB] = useState(formateur?.hasAB ?? true);
+  const [hasTB, setHasTB] = useState(formateur?.hasTB ?? true);
+  const [isRailsGlissants, setIsRailsGlissants] = useState(formateur?.isRailsGlissants ?? formateur?.isTramway ?? false);
   const [email, setEmail] = useState(formateur?.email || '');
   const [telephone, setTelephone] = useState(formateur?.telephone || '');
   const [notes, setNotes] = useState(formateur?.notes || '');
@@ -36,8 +38,11 @@ export const FormateurFormModal: React.FC<Props> = ({ formateur, onClose, onSave
         prenom: prenom.trim(),
         nom: nom.trim(),
         acronyme: acronyme.trim().toUpperCase(),
-        isTramway,
-        isRailsGlissants,
+        isTramway: hasTram,
+        hasTram,
+        hasAB,
+        hasTB,
+        isRailsGlissants: hasTram || isRailsGlissants,
         email: email.trim(),
         mobile: telephone.trim(),
         telephone: telephone.trim(),
@@ -128,27 +133,37 @@ export const FormateurFormModal: React.FC<Props> = ({ formateur, onClose, onSave
 
           <div className="p-3.5 bg-orange-50/60 border border-orange-200 rounded-xl space-y-2">
             <div className="text-xs font-black uppercase text-gray-900 tracking-wider">
-              Habilitations Opérationnelles Spéciales
+              Qualifications & Habilitations Métier
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <label className="flex items-center gap-2 text-xs font-bold text-gray-800 cursor-pointer p-1">
                 <input
                   type="checkbox"
-                  checked={isTramway}
-                  onChange={(e) => setIsTramway(e.target.checked)}
-                  className="w-4 h-4 accent-[#FD5312] rounded"
+                  checked={hasTram}
+                  onChange={(e) => setHasTram(e.target.checked)}
+                  className="w-4 h-4 accent-[#FD5312] rounded cursor-pointer"
                 />
-                <span>Habilité Tramway (Module 3)</span>
+                <span>Habilité Tram</span>
               </label>
 
               <label className="flex items-center gap-2 text-xs font-bold text-gray-800 cursor-pointer p-1">
                 <input
                   type="checkbox"
-                  checked={isRailsGlissants}
-                  onChange={(e) => setIsRailsGlissants(e.target.checked)}
-                  className="w-4 h-4 accent-[#FD5312] rounded"
+                  checked={hasAB}
+                  onChange={(e) => setHasAB(e.target.checked)}
+                  className="w-4 h-4 accent-[#008CBE] rounded cursor-pointer"
                 />
-                <span>Habilité Rails Glissants (Module 2)</span>
+                <span>Habilité AB</span>
+              </label>
+
+              <label className="flex items-center gap-2 text-xs font-bold text-gray-800 cursor-pointer p-1">
+                <input
+                  type="checkbox"
+                  checked={hasTB}
+                  onChange={(e) => setHasTB(e.target.checked)}
+                  className="w-4 h-4 accent-[#059669] rounded cursor-pointer"
+                />
+                <span>Habilité TB</span>
               </label>
             </div>
           </div>

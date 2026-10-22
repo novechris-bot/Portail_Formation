@@ -24,7 +24,12 @@ export const FormateurDetailModal: React.FC<Props> = ({ formateur, onClose, onEd
               {formateur.nomComplet}
             </h2>
             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-              <FormateurVehicleLogos isTramway={formateur.isTramway} />
+              <FormateurVehicleLogos
+                hasTram={formateur.hasTram}
+                hasAB={formateur.hasAB}
+                hasTB={formateur.hasTB}
+                isTramway={formateur.isTramway}
+              />
               <span className="text-xs bg-white/20 px-2 py-0.5 rounded font-mono font-bold">
                 ID: {formateur.id}
               </span>
@@ -46,48 +51,73 @@ export const FormateurDetailModal: React.FC<Props> = ({ formateur, onClose, onEd
 
         {/* Content body */}
         <div className="p-6 space-y-5">
-          {/* Qualifications & Habilitations */}
+          {/* Qualifications & Habilitations Métier */}
           <div>
             <div className="text-xs font-black uppercase text-gray-500 tracking-wider mb-2">
-              Habilitations & Qualifications Métier
+              Qualifications & Habilitations Métier
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {/* Tramway */}
               <div
                 className={`p-3 rounded-xl border flex items-center gap-2.5 ${
-                  formateur.isTramway
+                  (formateur.hasTram ?? formateur.isTramway)
                     ? 'bg-orange-50 border-orange-200 text-[#FD5312]'
                     : 'bg-gray-50 border-gray-200 text-gray-400'
                 }`}
               >
-                {formateur.isTramway ? (
+                {(formateur.hasTram ?? formateur.isTramway) ? (
                   <CheckCircle2 className="w-5 h-5 text-[#FD5312] shrink-0" />
                 ) : (
                   <AlertCircle className="w-5 h-5 text-gray-300 shrink-0" />
                 )}
                 <div>
-                  <div className="text-xs font-black uppercase">Tramway</div>
+                  <div className="text-xs font-black uppercase flex items-center gap-1">
+                    <span>Tram</span>
+                  </div>
                   <div className="text-[11px] font-semibold opacity-90">
-                    {formateur.isTramway ? 'Habilité (Liste 11)' : 'Non assigné'}
+                    {(formateur.hasTram ?? formateur.isTramway) ? 'Habilité Tram' : 'Non habilité'}
                   </div>
                 </div>
               </div>
 
+              {/* Autobus (AB) */}
               <div
                 className={`p-3 rounded-xl border flex items-center gap-2.5 ${
-                  formateur.isRailsGlissants
-                    ? 'bg-blue-50 border-blue-200 text-[#008CBE]'
+                  (formateur.hasAB ?? true)
+                    ? 'bg-sky-50 border-sky-200 text-[#008CBE]'
                     : 'bg-gray-50 border-gray-200 text-gray-400'
                 }`}
               >
-                {formateur.isRailsGlissants ? (
+                {(formateur.hasAB ?? true) ? (
                   <CheckCircle2 className="w-5 h-5 text-[#008CBE] shrink-0" />
                 ) : (
                   <AlertCircle className="w-5 h-5 text-gray-300 shrink-0" />
                 )}
                 <div>
-                  <div className="text-xs font-black uppercase">Rails Glissants</div>
+                  <div className="text-xs font-black uppercase">Autobus</div>
                   <div className="text-[11px] font-semibold opacity-90">
-                    {formateur.isRailsGlissants ? 'Habilité (Liste 11)' : 'Non assigné'}
+                    {(formateur.hasAB ?? true) ? 'Habilité AB' : 'Non habilité'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Trolleybus (TB) */}
+              <div
+                className={`p-3 rounded-xl border flex items-center gap-2.5 ${
+                  (formateur.hasTB ?? true)
+                    ? 'bg-emerald-50 border-emerald-200 text-[#059669]'
+                    : 'bg-gray-50 border-gray-200 text-gray-400'
+                }`}
+              >
+                {(formateur.hasTB ?? true) ? (
+                  <CheckCircle2 className="w-5 h-5 text-[#059669] shrink-0" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-gray-300 shrink-0" />
+                )}
+                <div>
+                  <div className="text-xs font-black uppercase">Trolleybus</div>
+                  <div className="text-[11px] font-semibold opacity-90">
+                    {(formateur.hasTB ?? true) ? 'Habilité TB' : 'Non habilité'}
                   </div>
                 </div>
               </div>

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Formateur } from '../../types/formateur';
 import { FormateurDetailModal } from './FormateurDetailModal';
 import { AuditDiscrepanciesModal } from './AuditDiscrepanciesModal';
-import { TramLogoBadge, AbtbLogoBadge, FormateurVehicleLogos } from '../common/VehicleBadges';
+import { TramLogoBadge, AbtbLogoBadge, AbBadge, TbBadge, FormateurVehicleLogos } from '../common/VehicleBadges';
 import { validerEmail, validerEtFormaterMobile } from '../../utils/tpgHelpers';
 import {
   Search,
@@ -35,14 +35,16 @@ export const FormateursDirectory: React.FC<Props> = ({
   onResetDefaults
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'tram' | 'abtb'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'tram' | 'ab' | 'tb'>('all');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-  // Quick Add state (matching screenshot)
+  // Quick Add state (matching user requirements: Tram, AB, TB)
   const [newNom, setNewNom] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newMobile, setNewMobile] = useState('');
-  const [newIsTramway, setNewIsTramway] = useState(false);
+  const [newHasTram, setNewHasTram] = useState(false);
+  const [newHasAB, setNewHasAB] = useState(true);
+  const [newHasTB, setNewHasTB] = useState(true);
   const [quickAddSubmitting, setQuickAddSubmitting] = useState(false);
   const [actionFeedback, setActionFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -51,7 +53,9 @@ export const FormateursDirectory: React.FC<Props> = ({
   const [editNom, setEditNom] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editMobile, setEditMobile] = useState('');
-  const [editIsTramway, setEditIsTramway] = useState(false);
+  const [editHasTram, setEditHasTram] = useState(false);
+  const [editHasAB, setEditHasAB] = useState(true);
+  const [editHasTB, setEditHasTB] = useState(true);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   // Modals state
@@ -73,7 +77,7 @@ export const FormateursDirectory: React.FC<Props> = ({
     }, 4000);
   };
 
-  // Filter across nom, e-mail, mobile
+  // Filter across nom, e-mail, mobile & qualifications
   const filteredFormateurs = useMemo(() => {
     let list = [...formateurs];
 
@@ -95,7 +99,11 @@ export const FormateursDirectory: React.FC<Props> = ({
     }
 
     if (filterType === 'tram') {
-      list = list.filter((f) => f.isTramway);
+      list = list.filter((f) => f.hasTram ?? f.isTramway);
+    } else if (filterType === 'ab') {
+      list = list.filter((f) => f.hasAB ?? true);
+    } else if (filterType === 'tb') {
+      list = list.filter((f) => f.hasTB ?? true);
     }
 
     list.sort((a, b) => {
@@ -106,7 +114,18 @@ export const FormateursDirectory: React.FC<Props> = ({
     return list;
   }, [formateurs, searchQuery, filterType, sortOrder]);
 
-  const tramCount = useMemo(() => formateurs.filter((f) => f.isTramway).length, [formateurs]);
+  const tramCount = useMemo(
+    () => formateurs.filter((f) => f.hasTram ?? f.isTramway).length,
+    [formateurs]
+  );
+  const abCount = useMemo(
+    () => formateurs.filter((f) => f.hasAB ?? true).length,
+    [formateurs]
+  );
+  const tbCount = useMemo(
+    () => formateurs.filter((f) => f.hasTB ?? true).length,
+    [formateurs]
+  );
 
   const handleQuickAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,14 +139,20 @@ export const FormateursDirectory: React.FC<Props> = ({
         nom: newNom.trim(),
         email: newEmail.trim(),
         mobile: newMobile.trim(),
-        isTramway: newIsTramway,
-        isRailsGlissants: newIsTramway // Tram qualified are also aligned
+        telephone: newMobile.trim(),
+        hasTram: newHasTram,
+        hasAB: newHasAB,
+        hasTB: newHasTB,
+        isTramway: newHasTram,
+        isRailsGlissants: newHasTram
       });
       showNotification(`Formateur ${newNom.trim()} ajouté avec succès à la liste.`);
       setNewNom('');
       setNewEmail('');
       setNewMobile('');
-      setNewIsTramway(false);
+      setNewHasTram(false);
+      setNewHasAB(true);
+      setNewHasTB(true);
     } catch (err: any) {
       showNotification(err?.message || 'Erreur lors de l’ajout du formateur.', 'error');
     } finally {
@@ -140,7 +165,9 @@ export const FormateursDirectory: React.FC<Props> = ({
     setEditNom(f.nomComplet);
     setEditEmail(f.email || '');
     setEditMobile(f.mobile || f.telephone || '');
-    setEditIsTramway(Boolean(f.isTramway));
+    setEditHasTram(Boolean(f.hasTram ?? f.isTramway));
+    setEditHasAB(f.hasAB !== undefined ? Boolean(f.hasAB) : true);
+    setEditHasTB(f.hasTB !== undefined ? Boolean(f.hasTB) : true);
   };
 
   const cancelInlineEdit = () => {
@@ -159,8 +186,11 @@ export const FormateursDirectory: React.FC<Props> = ({
         email: editEmail.trim(),
         mobile: editMobile.trim(),
         telephone: editMobile.trim(),
-        isTramway: editIsTramway,
-        isRailsGlissants: editIsTramway
+        hasTram: editHasTram,
+        hasAB: editHasAB,
+        hasTB: editHasTB,
+        isTramway: editHasTram,
+        isRailsGlissants: editHasTram
       });
       showNotification(`Formateur ${editNom.trim()} mis à jour avec succès.`);
       setInlineEditingId(null);
@@ -199,14 +229,15 @@ export const FormateursDirectory: React.FC<Props> = ({
   };
 
   const exportCSV = () => {
-    const headers = ['ID', 'Nom & Prénom', 'E-mail TPG', 'Numéro Portable', 'Habilité TRAM', 'Habilité AB/TB'];
+    const headers = ['ID', 'Nom & Prénom', 'E-mail TPG', 'Numéro Portable', 'Habilité Tram', 'Habilité AB', 'Habilité TB'];
     const rows = filteredFormateurs.map((f) => [
       `"${f.id}"`,
       `"${f.nomComplet}"`,
       `"${f.email || ''}"`,
       `"${f.mobile || f.telephone || ''}"`,
-      f.isTramway ? 'OUI' : 'NON',
-      'OUI'
+      (f.hasTram ?? f.isTramway) ? 'OUI' : 'NON',
+      (f.hasAB ?? true) ? 'OUI' : 'NON',
+      (f.hasTB ?? true) ? 'OUI' : 'NON'
     ]);
 
     const csvContent = '\uFEFF' + [headers.join(';'), ...rows.map((r) => r.join(';'))].join('\n');
@@ -231,7 +262,7 @@ export const FormateursDirectory: React.FC<Props> = ({
             8. ANNUAIRE & GESTION DES FORMATEURS TPG
           </h2>
           <p className="text-xs text-gray-500 font-semibold mt-0.5">
-            {formateurs.length} formateurs enregistrés • {tramCount} certifiés TRAM • {formateurs.length} certifiés AB/TB
+            {formateurs.length} formateurs enregistrés • {tramCount} certifiés TRAM • {abCount} certifiés AB • {tbCount} certifiés TB
           </p>
         </div>
 
@@ -294,7 +325,7 @@ export const FormateursDirectory: React.FC<Props> = ({
         </div>
       )}
 
-      {/* Formulaire d'ajout rapide (Exact styling from user screenshot) */}
+      {/* Formulaire d'ajout rapide (Choix des qualifications Tram, AB, TB) */}
       <div className="bg-[#f9fafb] border border-[#e5e7eb] rounded-xl p-4 sm:p-5 mb-5 shadow-xs">
         <h3
           className="text-sm font-bold text-[#FD5312] uppercase tracking-wide mb-3"
@@ -354,43 +385,68 @@ export const FormateursDirectory: React.FC<Props> = ({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-            <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-bold text-gray-700">
-              <input
-                type="checkbox"
-                checked={newIsTramway}
-                onChange={(e) => setNewIsTramway(e.target.checked)}
-                className="w-4 h-4 accent-[#FD5312] rounded cursor-pointer"
-              />
-              <span className="flex items-center gap-1.5">
-                <span>Habilité Tramway :</span>
-                {newIsTramway ? (
-                  <>
-                    <TramLogoBadge />
-                    <AbtbLogoBadge />
-                  </>
-                ) : (
-                  <span className="text-gray-500 font-normal">
-                    (Par défaut : <AbtbLogoBadge /> uniquement)
-                  </span>
-                )}
-              </span>
-            </label>
+          {/* Choix des qualifications requises : Habilité Tram, Habilité AB, Habilité TB */}
+          <div className="pt-2 border-t border-gray-200 mt-2">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xs font-bold text-gray-700 uppercase">
+                  Qualifications :
+                </span>
 
-            <button
-              type="submit"
-              disabled={quickAddSubmitting}
-              className="px-5 py-2.5 bg-[#FD5312] hover:bg-[#e04508] active:scale-95 text-white font-extrabold uppercase text-xs rounded-lg shadow-sm hover:shadow transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
-              style={{ fontFamily: "'HelveticaNeue LT COM 65 MD', 'Helvetica Neue LT Com 65 Md', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}
-            >
-              <Plus className="w-4 h-4" />
-              <span>{quickAddSubmitting ? 'Ajout en cours...' : '+ AJOUTER À LA LISTE'}</span>
-            </button>
+                <label className="flex items-center gap-1.5 cursor-pointer select-none text-xs font-bold text-gray-800 p-1.5 px-2 bg-white rounded-lg border border-gray-200 hover:border-orange-300 transition">
+                  <input
+                    type="checkbox"
+                    checked={newHasTram}
+                    onChange={(e) => setNewHasTram(e.target.checked)}
+                    className="w-4 h-4 accent-[#FD5312] rounded cursor-pointer"
+                  />
+                  <span>Habilité Tram</span>
+                  <TramLogoBadge />
+                </label>
+
+                <label className="flex items-center gap-1.5 cursor-pointer select-none text-xs font-bold text-gray-800 p-1.5 px-2 bg-white rounded-lg border border-gray-200 hover:border-sky-300 transition">
+                  <input
+                    type="checkbox"
+                    checked={newHasAB}
+                    onChange={(e) => setNewHasAB(e.target.checked)}
+                    className="w-4 h-4 accent-[#008CBE] rounded cursor-pointer"
+                  />
+                  <span>Habilité AB</span>
+                  <AbBadge />
+                </label>
+
+                <label className="flex items-center gap-1.5 cursor-pointer select-none text-xs font-bold text-gray-800 p-1.5 px-2 bg-white rounded-lg border border-gray-200 hover:border-emerald-300 transition">
+                  <input
+                    type="checkbox"
+                    checked={newHasTB}
+                    onChange={(e) => setNewHasTB(e.target.checked)}
+                    className="w-4 h-4 accent-[#059669] rounded cursor-pointer"
+                  />
+                  <span>Habilité TB</span>
+                  <TbBadge />
+                </label>
+
+                <div className="hidden lg:flex items-center gap-1 pl-2 text-xs text-gray-500">
+                  <span className="text-gray-400">Aperçu :</span>
+                  <FormateurVehicleLogos hasTram={newHasTram} hasAB={newHasAB} hasTB={newHasTB} />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={quickAddSubmitting}
+                className="px-5 py-2.5 bg-[#FD5312] hover:bg-[#e04508] active:scale-95 text-white font-extrabold uppercase text-xs rounded-lg shadow-sm hover:shadow transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                style={{ fontFamily: "'HelveticaNeue LT COM 65 MD', 'Helvetica Neue LT Com 65 Md', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}
+              >
+                <Plus className="w-4 h-4" />
+                <span>{quickAddSubmitting ? 'Ajout en cours...' : '+ AJOUTER À LA LISTE'}</span>
+              </button>
+            </div>
           </div>
         </form>
       </div>
 
-      {/* Barre de Recherche et Filtres (Exact layout from user screenshot) */}
+      {/* Barre de Recherche et Filtres */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 no-print">
         <div>
           <label
@@ -428,7 +484,7 @@ export const FormateursDirectory: React.FC<Props> = ({
             <span className="italic text-[12px] text-gray-500">
               Les modifications ou ajouts mettent à jour automatiquement l'application.
             </span>
-            <div className="flex items-center gap-1.5 ml-auto">
+            <div className="flex items-center gap-1.5 ml-auto flex-wrap">
               <button
                 type="button"
                 onClick={() => setFilterType('all')}
@@ -453,8 +509,30 @@ export const FormateursDirectory: React.FC<Props> = ({
               </button>
               <button
                 type="button"
+                onClick={() => setFilterType('ab')}
+                className={`px-2.5 py-1 rounded text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                  filterType === 'ab'
+                    ? 'bg-[#008CBE] text-white shadow-xs'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <span>AB ({abCount})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterType('tb')}
+                className={`px-2.5 py-1 rounded text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                  filterType === 'tb'
+                    ? 'bg-[#059669] text-white shadow-xs'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <span>TB ({tbCount})</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                className="p-1 text-gray-500 hover:text-gray-800 transition"
+                className="p-1 text-gray-500 hover:text-gray-800 transition cursor-pointer"
                 title={`Tri alphabétique (${sortOrder === 'asc' ? 'A à Z' : 'Z à A'})`}
               >
                 <ArrowUpDown className="w-3.5 h-3.5" />
@@ -522,28 +600,40 @@ export const FormateursDirectory: React.FC<Props> = ({
                             placeholder="Nom & Prénom"
                             autoFocus
                           />
-                          <div className="flex items-center gap-2 text-xs">
-                            <label className="flex items-center gap-1.5 cursor-pointer font-bold text-gray-700">
+                          <div className="flex flex-wrap items-center gap-2.5 text-xs p-2 bg-gray-50 rounded-lg border border-gray-200">
+                            <span className="font-bold text-gray-500 uppercase text-[11px]">Qualifications :</span>
+                            <label className="flex items-center gap-1 cursor-pointer font-bold text-gray-700">
                               <input
                                 type="checkbox"
-                                checked={editIsTramway}
-                                onChange={(e) => setEditIsTramway(e.target.checked)}
-                                className="w-3.5 h-3.5 accent-[#FD5312] rounded"
+                                checked={editHasTram}
+                                onChange={(e) => setEditHasTram(e.target.checked)}
+                                className="w-3.5 h-3.5 accent-[#FD5312] rounded cursor-pointer"
                               />
-                              <span>Habilité TRAM</span>
+                              <span>Habilité Tram</span>
                             </label>
-                            <span className="text-gray-400">|</span>
-                            <span className="text-gray-500 flex items-center gap-1">
-                              Logos attribués :
-                              {editIsTramway ? (
-                                <>
-                                  <TramLogoBadge />
-                                  <AbtbLogoBadge />
-                                </>
-                              ) : (
-                                <AbtbLogoBadge />
-                              )}
-                            </span>
+                            <label className="flex items-center gap-1 cursor-pointer font-bold text-gray-700">
+                              <input
+                                type="checkbox"
+                                checked={editHasAB}
+                                onChange={(e) => setEditHasAB(e.target.checked)}
+                                className="w-3.5 h-3.5 accent-[#008CBE] rounded cursor-pointer"
+                              />
+                              <span>Habilité AB</span>
+                            </label>
+                            <label className="flex items-center gap-1 cursor-pointer font-bold text-gray-700">
+                              <input
+                                type="checkbox"
+                                checked={editHasTB}
+                                onChange={(e) => setEditHasTB(e.target.checked)}
+                                className="w-3.5 h-3.5 accent-[#059669] rounded cursor-pointer"
+                              />
+                              <span>Habilité TB</span>
+                            </label>
+                            <span className="text-gray-300">|</span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-gray-500 text-[11px]">Aperçu :</span>
+                              <FormateurVehicleLogos hasTram={editHasTram} hasAB={editHasAB} hasTB={editHasTB} />
+                            </div>
                           </div>
                         </div>
                       ) : (
@@ -557,16 +647,14 @@ export const FormateursDirectory: React.FC<Props> = ({
                             {f.nomComplet}
                           </button>
 
-                          {/* Logos TPG: 11 personnes TRAM -> TRAM + AB/TB. Autres -> AB/TB */}
+                          {/* Logos TPG selon qualifications */}
                           <div className="flex items-center gap-1.5 shrink-0">
-                            {f.isTramway ? (
-                              <>
-                                <TramLogoBadge />
-                                <AbtbLogoBadge />
-                              </>
-                            ) : (
-                              <AbtbLogoBadge />
-                            )}
+                            <FormateurVehicleLogos
+                              hasTram={f.hasTram}
+                              hasAB={f.hasAB}
+                              hasTB={f.hasTB}
+                              isTramway={f.isTramway}
+                            />
                           </div>
                         </div>
                       )}
@@ -708,7 +796,12 @@ export const FormateursDirectory: React.FC<Props> = ({
                 <div className="text-xs text-gray-600 mt-1">E-mail : {deleteCandidate.email || 'Non renseigné'}</div>
                 <div className="text-xs text-gray-600">Portable : {deleteCandidate.mobile || 'Non renseigné'}</div>
                 <div className="mt-2 flex items-center gap-1.5">
-                  <FormateurVehicleLogos isTramway={deleteCandidate.isTramway} />
+                  <FormateurVehicleLogos
+                    hasTram={deleteCandidate.hasTram}
+                    hasAB={deleteCandidate.hasAB}
+                    hasTB={deleteCandidate.hasTB}
+                    isTramway={deleteCandidate.isTramway}
+                  />
                 </div>
               </div>
               <p className="text-xs text-gray-500">
