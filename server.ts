@@ -264,7 +264,7 @@ const DEFAULT_CONFIG = {
     tram_bachet: 'Resp.equipesCMB2@tpg.ch,Equipes_Planification_CMB@tpg.ch,cadres.operationnels@tpg.ch',
     tram_chardon: 'Resp.equipesCMB2@tpg.ch,Equipes_Planification_CMB@tpg.ch,Linares.David@tpg.ch',
     abtb_bachet: 'Resp.equipesCMB2@tpg.ch,Equipes_Planification_CMB@tpg.ch,cadres.operationnels@tpg.ch',
-    abtb_chardon: 'Resp.equipesCMB2@tpg.ch,Equipes_Planification_CMB@tpg.ch,cadres.operationnels@tpg.ch',
+    abtb_chardon: 'Resp.equipesCMC@tpg.ch,Equipes_Planification_CMC@tpg.ch,cadres.operationnels@tpg.ch',
     abtb_jonctionab: 'Resp.equipesCMJ2@tpg.ch,Equipes_Planification_CMJ@tpg.ch,cadres.operationnels@tpg.ch',
     abtb_jonctiontb: 'Resp.equipesCMJ2@tpg.ch,Equipes_Planification_CMJ@tpg.ch,cadres.operationnels@tpg.ch',
     vehicule_leger: 'ducret.julien@tpg.ch',

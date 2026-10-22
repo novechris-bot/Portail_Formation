@@ -337,7 +337,7 @@ export const FormateursDirectory: React.FC<Props> = ({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
             <div>
               <label
-                className="block text-xs font-bold text-gray-700 mb-1"
+                className="block text-xs text-gray-700 mb-1"
                 style={{ fontFamily: "'HelveticaNeue LT COM 65 MD', 'Helvetica Neue LT Com 65 Md', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}
               >
                 Nom & Prénom <span className="text-red-500">*</span>
@@ -354,7 +354,7 @@ export const FormateursDirectory: React.FC<Props> = ({
 
             <div>
               <label
-                className="block text-xs font-bold text-gray-700 mb-1"
+                className="block text-xs text-gray-700 mb-1"
                 style={{ fontFamily: "'HelveticaNeue LT COM 65 MD', 'Helvetica Neue LT Com 65 Md', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}
               >
                 E-mail TPG
@@ -370,7 +370,7 @@ export const FormateursDirectory: React.FC<Props> = ({
 
             <div>
               <label
-                className="block text-xs font-bold text-gray-700 mb-1"
+                className="block text-xs text-gray-700 mb-1"
                 style={{ fontFamily: "'HelveticaNeue LT COM 65 MD', 'Helvetica Neue LT Com 65 Md', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}
               >
                 Portable
@@ -389,11 +389,11 @@ export const FormateursDirectory: React.FC<Props> = ({
           <div className="pt-2 border-t border-gray-200 mt-2">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-3">
-                <span className="text-xs font-bold text-gray-700 uppercase">
+                <span className="text-xs text-gray-700 uppercase">
                   Qualifications :
                 </span>
 
-                <label className="flex items-center gap-1.5 cursor-pointer select-none text-xs font-bold text-gray-800 p-1.5 px-2 bg-white rounded-lg border border-gray-200 hover:border-orange-300 transition">
+                <label className="flex items-center gap-1.5 cursor-pointer select-none text-xs text-gray-800 p-1.5 px-2 bg-white rounded-lg border border-gray-200 hover:border-orange-300 transition">
                   <input
                     type="checkbox"
                     checked={newHasTram}
@@ -404,7 +404,7 @@ export const FormateursDirectory: React.FC<Props> = ({
                   <TramLogoBadge />
                 </label>
 
-                <label className="flex items-center gap-1.5 cursor-pointer select-none text-xs font-bold text-gray-800 p-1.5 px-2 bg-white rounded-lg border border-gray-200 hover:border-sky-300 transition">
+                <label className="flex items-center gap-1.5 cursor-pointer select-none text-xs text-gray-800 p-1.5 px-2 bg-white rounded-lg border border-gray-200 hover:border-sky-300 transition">
                   <input
                     type="checkbox"
                     checked={newHasAB}
@@ -415,7 +415,7 @@ export const FormateursDirectory: React.FC<Props> = ({
                   <AbBadge />
                 </label>
 
-                <label className="flex items-center gap-1.5 cursor-pointer select-none text-xs font-bold text-gray-800 p-1.5 px-2 bg-white rounded-lg border border-gray-200 hover:border-emerald-300 transition">
+                <label className="flex items-center gap-1.5 cursor-pointer select-none text-xs text-gray-800 p-1.5 px-2 bg-white rounded-lg border border-gray-200 hover:border-emerald-300 transition">
                   <input
                     type="checkbox"
                     checked={newHasTB}
@@ -450,7 +450,7 @@ export const FormateursDirectory: React.FC<Props> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 no-print">
         <div>
           <label
-            className="block text-xs font-bold text-gray-700 mb-1"
+            className="block text-xs text-gray-700 mb-1"
             style={{ fontFamily: "'HelveticaNeue LT COM 65 MD', 'Helvetica Neue LT Com 65 Md', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}
           >
             Rechercher un formateur
@@ -601,8 +601,8 @@ export const FormateursDirectory: React.FC<Props> = ({
                             autoFocus
                           />
                           <div className="flex flex-wrap items-center gap-2.5 text-xs p-2 bg-gray-50 rounded-lg border border-gray-200">
-                            <span className="font-bold text-gray-500 uppercase text-[11px]">Qualifications :</span>
-                            <label className="flex items-center gap-1 cursor-pointer font-bold text-gray-700">
+                            <span className="text-gray-500 uppercase text-[11px]">Qualifications :</span>
+                            <label className="flex items-center gap-1 cursor-pointer text-gray-700">
                               <input
                                 type="checkbox"
                                 checked={editHasTram}
@@ -611,7 +611,7 @@ export const FormateursDirectory: React.FC<Props> = ({
                               />
                               <span>Habilité Tram</span>
                             </label>
-                            <label className="flex items-center gap-1 cursor-pointer font-bold text-gray-700">
+                            <label className="flex items-center gap-1 cursor-pointer text-gray-700">
                               <input
                                 type="checkbox"
                                 checked={editHasAB}
@@ -620,7 +620,7 @@ export const FormateursDirectory: React.FC<Props> = ({
                               />
                               <span>Habilité AB</span>
                             </label>
-                            <label className="flex items-center gap-1 cursor-pointer font-bold text-gray-700">
+                            <label className="flex items-center gap-1 cursor-pointer text-gray-700">
                               <input
                                 type="checkbox"
                                 checked={editHasTB}

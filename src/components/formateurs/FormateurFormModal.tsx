@@ -86,7 +86,7 @@ export const FormateurFormModal: React.FC<Props> = ({ formateur, onClose, onSave
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold uppercase text-gray-700 mb-1">
+              <label className="block text-xs uppercase text-gray-700 mb-1">
                 Prénom <span className="text-red-500">*</span>
               </label>
               <input
@@ -100,7 +100,7 @@ export const FormateurFormModal: React.FC<Props> = ({ formateur, onClose, onSave
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase text-gray-700 mb-1">
+              <label className="block text-xs uppercase text-gray-700 mb-1">
                 Nom <span className="text-red-500">*</span>
               </label>
               <input
@@ -115,7 +115,7 @@ export const FormateurFormModal: React.FC<Props> = ({ formateur, onClose, onSave
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase text-gray-700 mb-1">
+            <label className="block text-xs uppercase text-gray-700 mb-1">
               Acronyme TPG (Optionnel)
             </label>
             <input
@@ -136,7 +136,7 @@ export const FormateurFormModal: React.FC<Props> = ({ formateur, onClose, onSave
               Qualifications & Habilitations Métier
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <label className="flex items-center gap-2 text-xs font-bold text-gray-800 cursor-pointer p-1">
+              <label className="flex items-center gap-2 text-xs text-gray-800 cursor-pointer p-1">
                 <input
                   type="checkbox"
                   checked={hasTram}
@@ -146,7 +146,7 @@ export const FormateurFormModal: React.FC<Props> = ({ formateur, onClose, onSave
                 <span>Habilité Tram</span>
               </label>
 
-              <label className="flex items-center gap-2 text-xs font-bold text-gray-800 cursor-pointer p-1">
+              <label className="flex items-center gap-2 text-xs text-gray-800 cursor-pointer p-1">
                 <input
                   type="checkbox"
                   checked={hasAB}
@@ -156,7 +156,7 @@ export const FormateurFormModal: React.FC<Props> = ({ formateur, onClose, onSave
                 <span>Habilité AB</span>
               </label>
 
-              <label className="flex items-center gap-2 text-xs font-bold text-gray-800 cursor-pointer p-1">
+              <label className="flex items-center gap-2 text-xs text-gray-800 cursor-pointer p-1">
                 <input
                   type="checkbox"
                   checked={hasTB}
@@ -170,7 +170,7 @@ export const FormateurFormModal: React.FC<Props> = ({ formateur, onClose, onSave
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold uppercase text-gray-700 mb-1">
+              <label className="block text-xs uppercase text-gray-700 mb-1">
                 Email professionnel
               </label>
               <input
@@ -183,7 +183,7 @@ export const FormateurFormModal: React.FC<Props> = ({ formateur, onClose, onSave
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase text-gray-700 mb-1">
+              <label className="block text-xs uppercase text-gray-700 mb-1">
                 Téléphone professionnel
               </label>
               <input
@@ -197,7 +197,7 @@ export const FormateurFormModal: React.FC<Props> = ({ formateur, onClose, onSave
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase text-gray-700 mb-1">
+            <label className="block text-xs uppercase text-gray-700 mb-1">
               Remarques administratives
             </label>
             <textarea

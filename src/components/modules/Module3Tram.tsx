@@ -10,6 +10,8 @@ interface Props {
 }
 
 const TRAM_VEHICLES = [
+  'Link',
+  'Link + Link',
   'Bombardier',
   'Bombardier + Bombardier',
   'Tango',
@@ -95,7 +97,7 @@ export const Module3Tram: React.FC<Props> = ({ formateurs, mailConfig }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label className="block text-xs font-bold uppercase text-gray-700 mb-1">
+          <label className="block text-xs uppercase text-gray-700 mb-1">
             Formateur <span className="text-red-500 font-black">*</span>
           </label>
           <select
@@ -114,7 +116,7 @@ export const Module3Tram: React.FC<Props> = ({ formateurs, mailConfig }) => {
         </div>
 
         <div>
-          <label className="block text-xs font-bold uppercase text-gray-700 mb-1">
+          <label className="block text-xs uppercase text-gray-700 mb-1">
             Dépôt <span className="text-red-500 font-black">*</span>
           </label>
           <select
@@ -130,7 +132,7 @@ export const Module3Tram: React.FC<Props> = ({ formateurs, mailConfig }) => {
         </div>
 
         <div className="flex items-end pb-2">
-          <div className="text-xs text-gray-500 font-bold">
+          <div className="text-xs text-gray-500">
             Véhicules cochés → intégrés dynamiquement dans l'aperçu
           </div>
         </div>
@@ -138,7 +140,7 @@ export const Module3Tram: React.FC<Props> = ({ formateurs, mailConfig }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
         <div>
-          <label className="block text-xs font-bold uppercase text-gray-700 mb-1">Date début</label>
+          <label className="block text-xs uppercase text-gray-700 mb-1">Date début</label>
           <input
             type="date"
             value={date1}
@@ -148,7 +150,7 @@ export const Module3Tram: React.FC<Props> = ({ formateurs, mailConfig }) => {
         </div>
 
         <div>
-          <label className="block text-xs font-bold uppercase text-gray-700 mb-1">Date fin</label>
+          <label className="block text-xs uppercase text-gray-700 mb-1">Date fin</label>
           <input
             type="date"
             value={date2}
@@ -167,7 +169,7 @@ export const Module3Tram: React.FC<Props> = ({ formateurs, mailConfig }) => {
           {TRAM_VEHICLES.map((v) => (
             <label
               key={v}
-              className="flex items-center gap-2.5 text-xs font-bold text-gray-800 cursor-pointer p-1.5 hover:bg-white rounded transition"
+              className="flex items-center gap-2.5 text-xs text-gray-800 cursor-pointer p-1.5 hover:bg-white rounded transition"
             >
               <input
                 type="checkbox"
@@ -182,7 +184,7 @@ export const Module3Tram: React.FC<Props> = ({ formateurs, mailConfig }) => {
       </div>
 
       <div className="mt-3">
-        <label className="block text-xs font-bold uppercase text-gray-700 mb-1">Remarques</label>
+        <label className="block text-xs uppercase text-gray-700 mb-1">Remarques</label>
         <textarea
           rows={3}
           value={remarques}

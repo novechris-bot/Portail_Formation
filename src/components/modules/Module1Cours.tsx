@@ -93,7 +93,7 @@ export const Module1Cours: React.FC<Props> = ({ formateurs, mailConfig }) => {
       {/* Inputs grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label className="block text-xs font-bold uppercase text-gray-700 mb-1">
+          <label className="block text-xs uppercase text-gray-700 mb-1">
             Type de cours <span className="text-red-500 font-black">*</span>
           </label>
           <select
@@ -110,7 +110,7 @@ export const Module1Cours: React.FC<Props> = ({ formateurs, mailConfig }) => {
         </div>
 
         <div>
-          <label className="block text-xs font-bold uppercase text-gray-700 mb-1">
+          <label className="block text-xs uppercase text-gray-700 mb-1">
             Nombre de personnes <span className="text-red-500 font-black">*</span>
           </label>
           <select
@@ -130,7 +130,7 @@ export const Module1Cours: React.FC<Props> = ({ formateurs, mailConfig }) => {
         </div>
 
         <div>
-          <label className="block text-xs font-bold uppercase text-gray-700 mb-1">
+          <label className="block text-xs uppercase text-gray-700 mb-1">
             Formateur <span className="text-red-500 font-black">*</span>
           </label>
           <select
@@ -151,7 +151,7 @@ export const Module1Cours: React.FC<Props> = ({ formateurs, mailConfig }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
         <div>
-          <label className="block text-xs font-bold uppercase text-gray-700 mb-1">Date début</label>
+          <label className="block text-xs uppercase text-gray-700 mb-1">Date début</label>
           <input
             type="date"
             value={date1}
@@ -161,7 +161,7 @@ export const Module1Cours: React.FC<Props> = ({ formateurs, mailConfig }) => {
         </div>
 
         <div>
-          <label className="block text-xs font-bold uppercase text-gray-700 mb-1">Date fin</label>
+          <label className="block text-xs uppercase text-gray-700 mb-1">Date fin</label>
           <input
             type="date"
             value={date2}
@@ -172,7 +172,7 @@ export const Module1Cours: React.FC<Props> = ({ formateurs, mailConfig }) => {
       </div>
 
       <div className="mt-3">
-        <label className="block text-xs font-bold uppercase text-gray-700 mb-1">Remarques</label>
+        <label className="block text-xs uppercase text-gray-700 mb-1">Remarques</label>
         <textarea
           rows={3}
           value={remarques}

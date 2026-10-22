@@ -9,8 +9,20 @@ interface Props {
   mailConfig: MailConfig;
 }
 
-const AUTOBUS_OPTIONS = ['Hess AB', 'Mercedes AB', 'ExquiCity'];
-const TROLLEYBUS_OPTIONS = ['Hess TBA', 'Hess TBAA', 'ExquiCity'];
+const AUTOBUS_OPTIONS = [
+  'AB Citaro',
+  'ABA Citaro',
+  'AB E-Bus',
+  'ABA E-Bus',
+  'ABAA E-Bus',
+  'TOSA'
+];
+const TROLLEYBUS_OPTIONS = [
+  'TOSA',
+  'Hess TBA',
+  'Hess TBAA',
+  'ExquiCity'
+];
 
 export const Module4Abtb: React.FC<Props> = ({ formateurs, mailConfig }) => {
   const [formateur, setFormateur] = useState<string>('');
@@ -81,7 +93,7 @@ export const Module4Abtb: React.FC<Props> = ({ formateurs, mailConfig }) => {
     if (depot === 'Bachet') {
       recipient = mailConfig.abtb_bachet;
     } else if (depot === 'En-Chardon') {
-      recipient = mailConfig.abtb_chardon;
+      recipient = mailConfig.abtb_chardon || 'Resp.equipesCMC@tpg.ch,Equipes_Planification_CMC@tpg.ch,cadres.operationnels@tpg.ch';
     } else if (depot === 'Jonction') {
       if (selectedTb.length > 0) {
         recipient = mailConfig.abtb_jonctiontb;
@@ -111,7 +123,7 @@ export const Module4Abtb: React.FC<Props> = ({ formateurs, mailConfig }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label className="block text-xs font-bold uppercase text-gray-700 mb-1">
+          <label className="block text-xs uppercase text-gray-700 mb-1">
             Formateur <span className="text-red-500 font-black">*</span>
           </label>
           <select
@@ -144,7 +156,7 @@ export const Module4Abtb: React.FC<Props> = ({ formateurs, mailConfig }) => {
         </div>
 
         <div>
-          <label className="block text-xs font-bold uppercase text-gray-700 mb-1">
+          <label className="block text-xs uppercase text-gray-700 mb-1">
             Dépôt <span className="text-red-500 font-black">*</span>
           </label>
           <select
@@ -161,7 +173,7 @@ export const Module4Abtb: React.FC<Props> = ({ formateurs, mailConfig }) => {
         </div>
 
         <div className="flex items-end pb-2">
-          <div className="text-xs text-gray-500 font-bold">
+          <div className="text-xs text-gray-500">
             Choisir Autobus / Trolleybus pour routage automatique
           </div>
         </div>
@@ -169,7 +181,7 @@ export const Module4Abtb: React.FC<Props> = ({ formateurs, mailConfig }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
         <div>
-          <label className="block text-xs font-bold uppercase text-gray-700 mb-1">Date début</label>
+          <label className="block text-xs uppercase text-gray-700 mb-1">Date début</label>
           <input
             type="date"
             value={date1}
@@ -179,7 +191,7 @@ export const Module4Abtb: React.FC<Props> = ({ formateurs, mailConfig }) => {
         </div>
 
         <div>
-          <label className="block text-xs font-bold uppercase text-gray-700 mb-1">Date fin</label>
+          <label className="block text-xs uppercase text-gray-700 mb-1">Date fin</label>
           <input
             type="date"
             value={date2}
@@ -198,7 +210,7 @@ export const Module4Abtb: React.FC<Props> = ({ formateurs, mailConfig }) => {
           {AUTOBUS_OPTIONS.map((v) => (
             <label
               key={v}
-              className="flex items-center gap-2.5 text-xs font-bold text-gray-800 cursor-pointer p-1.5 hover:bg-white rounded transition"
+              className="flex items-center gap-2.5 text-xs text-gray-800 cursor-pointer p-1.5 hover:bg-white rounded transition"
             >
               <input
                 type="checkbox"
@@ -221,7 +233,7 @@ export const Module4Abtb: React.FC<Props> = ({ formateurs, mailConfig }) => {
           {TROLLEYBUS_OPTIONS.map((v) => (
             <label
               key={v}
-              className="flex items-center gap-2.5 text-xs font-bold text-gray-800 cursor-pointer p-1.5 hover:bg-white rounded transition"
+              className="flex items-center gap-2.5 text-xs text-gray-800 cursor-pointer p-1.5 hover:bg-white rounded transition"
             >
               <input
                 type="checkbox"
@@ -237,20 +249,20 @@ export const Module4Abtb: React.FC<Props> = ({ formateurs, mailConfig }) => {
 
       {/* Champ Motif (en dessous de Trolleybus) */}
       <div className="mt-4">
-        <label className="block text-xs font-bold uppercase text-gray-700 mb-1">
+        <label className="block text-xs uppercase text-gray-700 mb-1">
           Motif
         </label>
         <select
           value={motif}
           onChange={(e) => setMotif(e.target.value)}
-          className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:border-[#FD5312] focus:ring-2 focus:ring-[#FD5312]/20 outline-none font-medium text-gray-800"
+          className="w-full p-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:border-[#FD5312] focus:ring-2 focus:ring-[#FD5312]/20 outline-none text-gray-800"
         >
           <option value="">-- Choisir un motif (optionnel) --</option>
           <option value="Examen de conduite OCVE">Examen de conduite OCVE</option>
           <option value="Exercice de parcage">Exercice de parcage</option>
         </select>
         {Boolean(motif) && (
-          <div className="mt-2.5 p-3 bg-amber-50 border border-[#FD5312]/30 rounded-lg flex items-center gap-2.5 text-xs font-bold text-gray-900 shadow-xs animate-in fade-in">
+          <div className="mt-2.5 p-3 bg-amber-50 border border-[#FD5312]/30 rounded-lg flex items-center gap-2.5 text-xs font-semibold text-gray-900 shadow-xs animate-in fade-in">
             <Info className="w-4 h-4 text-[#FD5312] shrink-0" />
             <span>Réservation fin des voies 111 à 113 (2 véhicules par voie)</span>
           </div>
@@ -258,7 +270,7 @@ export const Module4Abtb: React.FC<Props> = ({ formateurs, mailConfig }) => {
       </div>
 
       <div className="mt-3">
-        <label className="block text-xs font-bold uppercase text-gray-700 mb-1">Remarques</label>
+        <label className="block text-xs uppercase text-gray-700 mb-1">Remarques</label>
         <textarea
           rows={3}
           value={remarques}
