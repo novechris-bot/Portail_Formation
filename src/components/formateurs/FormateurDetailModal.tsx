@@ -28,6 +28,7 @@ export const FormateurDetailModal: React.FC<Props> = ({ formateur, onClose, onEd
                 hasTram={formateur.hasTram}
                 hasAB={formateur.hasAB}
                 hasTB={formateur.hasTB}
+                hasCTT={formateur.hasCTT}
                 isTramway={formateur.isTramway}
               />
               <span className="text-xs bg-white/20 px-2 py-0.5 rounded font-mono font-bold">
@@ -56,7 +57,7 @@ export const FormateurDetailModal: React.FC<Props> = ({ formateur, onClose, onEd
             <div className="text-xs font-black uppercase text-gray-500 tracking-wider mb-2">
               Qualifications & Habilitations Métier
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
               {/* Tramway */}
               <div
                 className={`p-3 rounded-xl border flex items-center gap-2.5 ${
@@ -118,6 +119,27 @@ export const FormateurDetailModal: React.FC<Props> = ({ formateur, onClose, onEd
                   <div className="text-xs font-black uppercase">Trolleybus</div>
                   <div className="text-[11px] font-semibold opacity-90">
                     {(formateur.hasTB ?? true) ? 'Habilité TB' : 'Non habilité'}
+                  </div>
+                </div>
+              </div>
+
+              {/* CTT */}
+              <div
+                className={`p-3 rounded-xl border flex items-center gap-2.5 ${
+                  formateur.hasCTT
+                    ? 'bg-purple-50 border-purple-200 text-[#6D28D9]'
+                    : 'bg-gray-50 border-gray-200 text-gray-400'
+                }`}
+              >
+                {formateur.hasCTT ? (
+                  <CheckCircle2 className="w-5 h-5 text-[#6D28D9] shrink-0" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-gray-300 shrink-0" />
+                )}
+                <div>
+                  <div className="text-xs font-black uppercase">CTT</div>
+                  <div className="text-[11px] font-semibold opacity-90">
+                    {formateur.hasCTT ? 'Habilité CTT' : 'Non habilité'}
                   </div>
                 </div>
               </div>

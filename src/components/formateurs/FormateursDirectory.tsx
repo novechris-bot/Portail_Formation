@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Formateur } from '../../types/formateur';
 import { FormateurDetailModal } from './FormateurDetailModal';
 import { AuditDiscrepanciesModal } from './AuditDiscrepanciesModal';
-import { TramLogoBadge, AbtbLogoBadge, AbBadge, TbBadge, FormateurVehicleLogos } from '../common/VehicleBadges';
+import { TramLogoBadge, AbtbLogoBadge, AbBadge, TbBadge, CttBadge, FormateurVehicleLogos } from '../common/VehicleBadges';
 import { validerEmail, validerEtFormaterMobile } from '../../utils/tpgHelpers';
 import {
   Search,
@@ -35,16 +35,17 @@ export const FormateursDirectory: React.FC<Props> = ({
   onResetDefaults
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'tram' | 'ab' | 'tb'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'tram' | 'ab' | 'tb' | 'ctt'>('all');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-  // Quick Add state (matching user requirements: Tram, AB, TB)
+  // Quick Add state (matching user requirements: Tram, AB, TB, CTT)
   const [newNom, setNewNom] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newMobile, setNewMobile] = useState('');
   const [newHasTram, setNewHasTram] = useState(false);
   const [newHasAB, setNewHasAB] = useState(true);
   const [newHasTB, setNewHasTB] = useState(true);
+  const [newHasCTT, setNewHasCTT] = useState(false);
   const [quickAddSubmitting, setQuickAddSubmitting] = useState(false);
   const [actionFeedback, setActionFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -56,6 +57,7 @@ export const FormateursDirectory: React.FC<Props> = ({
   const [editHasTram, setEditHasTram] = useState(false);
   const [editHasAB, setEditHasAB] = useState(true);
   const [editHasTB, setEditHasTB] = useState(true);
+  const [editHasCTT, setEditHasCTT] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   // Modals state
@@ -104,6 +106,8 @@ export const FormateursDirectory: React.FC<Props> = ({
       list = list.filter((f) => f.hasAB ?? true);
     } else if (filterType === 'tb') {
       list = list.filter((f) => f.hasTB ?? true);
+    } else if (filterType === 'ctt') {
+      list = list.filter((f) => f.hasCTT);
     }
 
     list.sort((a, b) => {
@@ -126,6 +130,10 @@ export const FormateursDirectory: React.FC<Props> = ({
     () => formateurs.filter((f) => f.hasTB ?? true).length,
     [formateurs]
   );
+  const cttCount = useMemo(
+    () => formateurs.filter((f) => f.hasCTT).length,
+    [formateurs]
+  );
 
   const handleQuickAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,6 +151,7 @@ export const FormateursDirectory: React.FC<Props> = ({
         hasTram: newHasTram,
         hasAB: newHasAB,
         hasTB: newHasTB,
+        hasCTT: newHasCTT,
         isTramway: newHasTram,
         isRailsGlissants: newHasTram
       });
@@ -153,6 +162,7 @@ export const FormateursDirectory: React.FC<Props> = ({
       setNewHasTram(false);
       setNewHasAB(true);
       setNewHasTB(true);
+      setNewHasCTT(false);
     } catch (err: any) {
       showNotification(err?.message || 'Erreur lors de l’ajout du formateur.', 'error');
     } finally {
@@ -168,6 +178,7 @@ export const FormateursDirectory: React.FC<Props> = ({
     setEditHasTram(Boolean(f.hasTram ?? f.isTramway));
     setEditHasAB(f.hasAB !== undefined ? Boolean(f.hasAB) : true);
     setEditHasTB(f.hasTB !== undefined ? Boolean(f.hasTB) : true);
+    setEditHasCTT(Boolean(f.hasCTT));
   };
 
   const cancelInlineEdit = () => {
@@ -189,6 +200,7 @@ export const FormateursDirectory: React.FC<Props> = ({
         hasTram: editHasTram,
         hasAB: editHasAB,
         hasTB: editHasTB,
+        hasCTT: editHasCTT,
         isTramway: editHasTram,
         isRailsGlissants: editHasTram
       });
@@ -229,7 +241,7 @@ export const FormateursDirectory: React.FC<Props> = ({
   };
 
   const exportCSV = () => {
-    const headers = ['ID', 'Nom & Prénom', 'E-mail TPG', 'Numéro Portable', 'Habilité Tram', 'Habilité AB', 'Habilité TB'];
+    const headers = ['ID', 'Nom & Prénom', 'E-mail TPG', 'Numéro Portable', 'Habilité Tram', 'Habilité AB', 'Habilité TB', 'Habilité CTT'];
     const rows = filteredFormateurs.map((f) => [
       `"${f.id}"`,
       `"${f.nomComplet}"`,
@@ -237,7 +249,8 @@ export const FormateursDirectory: React.FC<Props> = ({
       `"${f.mobile || f.telephone || ''}"`,
       (f.hasTram ?? f.isTramway) ? 'OUI' : 'NON',
       (f.hasAB ?? true) ? 'OUI' : 'NON',
-      (f.hasTB ?? true) ? 'OUI' : 'NON'
+      (f.hasTB ?? true) ? 'OUI' : 'NON',
+      f.hasCTT ? 'OUI' : 'NON'
     ]);
 
     const csvContent = '\uFEFF' + [headers.join(';'), ...rows.map((r) => r.join(';'))].join('\n');
@@ -262,7 +275,7 @@ export const FormateursDirectory: React.FC<Props> = ({
             8. ANNUAIRE & GESTION DES FORMATEURS TPG
           </h2>
           <p className="text-xs text-gray-500 font-semibold mt-0.5">
-            {formateurs.length} formateurs enregistrés • {tramCount} certifiés TRAM • {abCount} certifiés AB • {tbCount} certifiés TB
+            {formateurs.length} formateurs enregistrés • {tramCount} certifiés TRAM • {abCount} certifiés AB • {tbCount} certifiés TB • {cttCount} certifiés CTT
           </p>
         </div>
 
@@ -426,9 +439,20 @@ export const FormateursDirectory: React.FC<Props> = ({
                   <TbBadge />
                 </label>
 
+                <label className="flex items-center gap-1.5 cursor-pointer select-none text-xs text-gray-800 p-1.5 px-2 bg-white rounded-lg border border-gray-200 hover:border-purple-300 transition">
+                  <input
+                    type="checkbox"
+                    checked={newHasCTT}
+                    onChange={(e) => setNewHasCTT(e.target.checked)}
+                    className="w-4 h-4 accent-[#6D28D9] rounded cursor-pointer"
+                  />
+                  <span>Habilité CTT</span>
+                  <CttBadge />
+                </label>
+
                 <div className="hidden lg:flex items-center gap-1 pl-2 text-xs text-gray-500">
                   <span className="text-gray-400">Aperçu :</span>
-                  <FormateurVehicleLogos hasTram={newHasTram} hasAB={newHasAB} hasTB={newHasTB} />
+                  <FormateurVehicleLogos hasTram={newHasTram} hasAB={newHasAB} hasTB={newHasTB} hasCTT={newHasCTT} />
                 </div>
               </div>
 
@@ -531,6 +555,17 @@ export const FormateursDirectory: React.FC<Props> = ({
               </button>
               <button
                 type="button"
+                onClick={() => setFilterType('ctt')}
+                className={`px-2.5 py-1 rounded text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                  filterType === 'ctt'
+                    ? 'bg-[#6D28D9] text-white shadow-xs'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <span>CTT ({cttCount})</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
                 className="p-1 text-gray-500 hover:text-gray-800 transition cursor-pointer"
                 title={`Tri alphabétique (${sortOrder === 'asc' ? 'A à Z' : 'Z à A'})`}
@@ -629,10 +664,19 @@ export const FormateursDirectory: React.FC<Props> = ({
                               />
                               <span>Habilité TB</span>
                             </label>
+                            <label className="flex items-center gap-1 cursor-pointer text-gray-700">
+                              <input
+                                type="checkbox"
+                                checked={editHasCTT}
+                                onChange={(e) => setEditHasCTT(e.target.checked)}
+                                className="w-3.5 h-3.5 accent-[#6D28D9] rounded cursor-pointer"
+                              />
+                              <span>Habilité CTT</span>
+                            </label>
                             <span className="text-gray-300">|</span>
                             <div className="flex items-center gap-1">
                               <span className="text-gray-500 text-[11px]">Aperçu :</span>
-                              <FormateurVehicleLogos hasTram={editHasTram} hasAB={editHasAB} hasTB={editHasTB} />
+                              <FormateurVehicleLogos hasTram={editHasTram} hasAB={editHasAB} hasTB={editHasTB} hasCTT={editHasCTT} />
                             </div>
                           </div>
                         </div>
@@ -653,6 +697,7 @@ export const FormateursDirectory: React.FC<Props> = ({
                               hasTram={f.hasTram}
                               hasAB={f.hasAB}
                               hasTB={f.hasTB}
+                              hasCTT={f.hasCTT}
                               isTramway={f.isTramway}
                             />
                           </div>
@@ -800,6 +845,7 @@ export const FormateursDirectory: React.FC<Props> = ({
                     hasTram={deleteCandidate.hasTram}
                     hasAB={deleteCandidate.hasAB}
                     hasTB={deleteCandidate.hasTB}
+                    hasCTT={deleteCandidate.hasCTT}
                     isTramway={deleteCandidate.isTramway}
                   />
                 </div>

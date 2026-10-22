@@ -137,14 +137,14 @@ export const Module4Abtb: React.FC<Props> = ({ formateurs, mailConfig }) => {
               const tram = f.hasTram ?? f.isTramway;
               const ab = f.hasAB ?? true;
               const tb = f.hasTB ?? true;
-              let badge = '';
-              if (tram && ab && tb) badge = '(TRAM + AB/TB)';
-              else if (tram && ab) badge = '(TRAM + AB)';
-              else if (tram && tb) badge = '(TRAM + TB)';
-              else if (tram) badge = '(TRAM)';
-              else if (ab && tb) badge = '(AB/TB)';
-              else if (ab) badge = '(AB)';
-              else if (tb) badge = '(TB)';
+              const ctt = f.hasCTT;
+              const parts: string[] = [];
+              if (tram) parts.push('TRAM');
+              if (ab && tb) parts.push('AB/TB');
+              else if (ab) parts.push('AB');
+              else if (tb) parts.push('TB');
+              if (ctt) parts.push('CTT');
+              const badge = parts.length ? `(${parts.join(' + ')})` : '';
 
               return (
                 <option key={f.id} value={f.nomComplet}>

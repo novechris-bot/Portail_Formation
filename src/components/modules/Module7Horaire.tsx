@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Formateur } from '../../types/formateur';
 import { MailConfig } from '../../types/modules';
-import { fmt, MERCI, mailTo } from '../../utils/tpgHelpers';
+import { fmt, mailTo } from '../../utils/tpgHelpers';
 import { Printer, Mail, RotateCcw, AlertTriangle } from 'lucide-react';
 
 interface Props {
@@ -21,9 +21,9 @@ export const Module7Horaire: React.FC<Props> = ({ formateurs, mailConfig }) => {
     return (
       `Bonjour,\n\n` +
       `Je vous informe que j'effectuerai un horaire conduite, le ${d1}.\n\n` +
-      `Je vous souhaite une belle journée.\n` +
-      `${formText}` +
-      MERCI
+      `Je vous souhaite une belle journée.\n\n` +
+      `Cordialement,\n` +
+      `${formText}`
     );
   }, [formateur, date]);
 

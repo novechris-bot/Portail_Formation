@@ -40,6 +40,7 @@ export interface StoredFormateur {
   hasTram?: boolean;
   hasAB?: boolean;
   hasTB?: boolean;
+  hasCTT?: boolean;
   isRailsGlissants: boolean;
   email: string;
   mobile: string;
@@ -155,6 +156,7 @@ function generateDefaultFormateurs(): StoredFormateur[] {
       hasTram: isSpecial,
       hasAB: true,
       hasTB: true,
+      hasCTT: false,
       isRailsGlissants: isSpecial,
       email: item.email,
       mobile: item.mobile,
@@ -177,6 +179,7 @@ function loadFormateurs(): StoredFormateur[] {
           hasTram: f.hasTram !== undefined ? Boolean(f.hasTram) : Boolean(f.isTramway),
           hasAB: f.hasAB !== undefined ? Boolean(f.hasAB) : true,
           hasTB: f.hasTB !== undefined ? Boolean(f.hasTB) : true,
+          hasCTT: Boolean(f.hasCTT),
           isTramway: f.hasTram !== undefined ? Boolean(f.hasTram) : Boolean(f.isTramway)
         }));
       }
@@ -582,7 +585,7 @@ app.get('/api/formateurs/:id', requireAuth, (req, res) => {
 
 // Create formateur
 app.post('/api/formateurs', requireAuth, (req, res) => {
-  const { nom, email, mobile, prenom, acronyme, isTramway, hasTram, hasAB, hasTB, isRailsGlissants, telephone, notes } = req.body;
+  const { nom, email, mobile, prenom, acronyme, isTramway, hasTram, hasAB, hasTB, hasCTT, isRailsGlissants, telephone, notes } = req.body;
 
   let cleanNomComplet = (nom || '').trim();
   let cleanPrenom = (prenom || '').trim();
@@ -612,6 +615,7 @@ app.post('/api/formateurs', requireAuth, (req, res) => {
   const tramQualif = hasTram !== undefined ? Boolean(hasTram) : Boolean(isTramway);
   const abQualif = hasAB !== undefined ? Boolean(hasAB) : true;
   const tbQualif = hasTB !== undefined ? Boolean(hasTB) : true;
+  const cttQualif = Boolean(hasCTT);
 
   const newFormateur: StoredFormateur = {
     id: String(Date.now()),
@@ -623,6 +627,7 @@ app.post('/api/formateurs', requireAuth, (req, res) => {
     hasTram: tramQualif,
     hasAB: abQualif,
     hasTB: tbQualif,
+    hasCTT: cttQualif,
     isRailsGlissants: Boolean(isRailsGlissants ?? tramQualif),
     email: (email || '').trim(),
     mobile: (mobile || telephone || '').trim(),
@@ -659,7 +664,7 @@ app.post('/api/formateurs', requireAuth, (req, res) => {
 // Update formateur
 app.put('/api/formateurs/:id', requireAuth, (req, res) => {
   const { id } = req.params;
-  const { nom, email, mobile, prenom, acronyme, isTramway, hasTram, hasAB, hasTB, isRailsGlissants, telephone, notes } = req.body;
+  const { nom, email, mobile, prenom, acronyme, isTramway, hasTram, hasAB, hasTB, hasCTT, isRailsGlissants, telephone, notes } = req.body;
 
   const list = loadFormateurs();
   const index = list.findIndex(f => String(f.id) === String(id));
@@ -681,6 +686,7 @@ app.put('/api/formateurs/:id', requireAuth, (req, res) => {
   const updatedHasTram = hasTram !== undefined ? Boolean(hasTram) : (isTramway !== undefined ? Boolean(isTramway) : (list[index].hasTram ?? list[index].isTramway));
   const updatedHasAB = hasAB !== undefined ? Boolean(hasAB) : (list[index].hasAB ?? true);
   const updatedHasTB = hasTB !== undefined ? Boolean(hasTB) : (list[index].hasTB ?? true);
+  const updatedHasCTT = hasCTT !== undefined ? Boolean(hasCTT) : Boolean(list[index].hasCTT);
 
   list[index] = {
     ...list[index],
@@ -695,6 +701,7 @@ app.put('/api/formateurs/:id', requireAuth, (req, res) => {
     hasTram: updatedHasTram,
     hasAB: updatedHasAB,
     hasTB: updatedHasTB,
+    hasCTT: updatedHasCTT,
     isRailsGlissants: isRailsGlissants !== undefined ? Boolean(isRailsGlissants) : list[index].isRailsGlissants,
     notes: notes !== undefined ? notes.trim() : list[index].notes
   };

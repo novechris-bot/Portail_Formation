@@ -59,16 +59,36 @@ export const TbBadge: React.FC<{ className?: string }> = ({ className = '' }) =>
   </span>
 );
 
+export const CttBadge: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <span
+    className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#6D28D9] text-white font-black text-[10.5px] tracking-wide uppercase shadow-xs border border-purple-900/20 select-none shrink-0 ${className}`}
+    title="Habilité CTT"
+  >
+    <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="4" y="3" width="16" height="15" rx="2" fill="currentColor" fillOpacity="0.2" />
+      <path d="M4 11h16" />
+      <path d="M12 3v8" />
+      <circle cx="8" cy="15" r="1.5" fill="currentColor" />
+      <circle cx="16" cy="15" r="1.5" fill="currentColor" />
+      <path d="M7 21l2-3" />
+      <path d="M17 21l-2-3" />
+    </svg>
+    <span>CTT</span>
+  </span>
+);
+
 export const FormateurVehicleLogos: React.FC<{
   hasTram?: boolean;
   hasAB?: boolean;
   hasTB?: boolean;
+  hasCTT?: boolean;
   isTramway?: boolean;
   className?: string;
-}> = ({ hasTram, hasAB, hasTB, isTramway, className = '' }) => {
+}> = ({ hasTram, hasAB, hasTB, hasCTT, isTramway, className = '' }) => {
   const tram = hasTram !== undefined ? hasTram : Boolean(isTramway);
   const ab = hasAB !== undefined ? hasAB : true;
   const tb = hasTB !== undefined ? hasTB : true;
+  const ctt = Boolean(hasCTT);
 
   return (
     <div className={`inline-flex items-center gap-1.5 flex-wrap ${className}`}>
@@ -76,7 +96,8 @@ export const FormateurVehicleLogos: React.FC<{
       {ab && tb && <AbtbLogoBadge />}
       {ab && !tb && <AbBadge />}
       {!ab && tb && <TbBadge />}
-      {!tram && !ab && !tb && (
+      {ctt && <CttBadge />}
+      {!tram && !ab && !tb && !ctt && (
         <span className="text-[10px] text-gray-400 italic font-semibold">Non habilité</span>
       )}
     </div>

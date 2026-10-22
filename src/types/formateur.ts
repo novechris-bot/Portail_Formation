@@ -8,6 +8,7 @@ export interface Formateur {
   hasTram?: boolean;
   hasAB?: boolean;
   hasTB?: boolean;
+  hasCTT?: boolean;
   isRailsGlissants: boolean;
   email: string;
   mobile: string;
