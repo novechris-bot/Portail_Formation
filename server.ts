@@ -597,7 +597,7 @@ app.get('/api/formateurs/:id', requireAuth, (req, res) => {
 });
 
 // Create formateur
-app.post('/api/formateurs', requireAuth, (req, res) => {
+app.post('/api/formateurs', requireAuth, requireAdmin, (req, res) => {
   const { nom, email, mobile, prenom, acronyme, isTramway, hasTram, hasAB, hasTB, hasCTT, isRailsGlissants, telephone, notes } = req.body;
 
   let cleanNomComplet = (nom || '').trim();
@@ -675,7 +675,7 @@ app.post('/api/formateurs', requireAuth, (req, res) => {
 });
 
 // Update formateur
-app.put('/api/formateurs/:id', requireAuth, (req, res) => {
+app.put('/api/formateurs/:id', requireAuth, requireAdmin, (req, res) => {
   const { id } = req.params;
   const { nom, email, mobile, prenom, acronyme, isTramway, hasTram, hasAB, hasTB, hasCTT, isRailsGlissants, telephone, notes } = req.body;
 
@@ -736,7 +736,7 @@ app.put('/api/formateurs/:id', requireAuth, (req, res) => {
 });
 
 // Delete formateur
-app.delete('/api/formateurs/:id', requireAuth, (req, res) => {
+app.delete('/api/formateurs/:id', requireAuth, requireAdmin, (req, res) => {
   const { id } = req.params;
   const list = loadFormateurs();
   const index = list.findIndex(f => String(f.id) === String(id));
