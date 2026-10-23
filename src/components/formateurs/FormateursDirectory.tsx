@@ -19,6 +19,7 @@ import {
 
 interface Props {
   formateurs: Formateur[];
+  canManage: boolean;
   onRefresh: () => Promise<void>;
   onCreate: (data: Partial<Formateur>) => Promise<void>;
   onUpdate: (id: string, data: Partial<Formateur>) => Promise<void>;
@@ -28,6 +29,7 @@ interface Props {
 
 export const FormateursDirectory: React.FC<Props> = ({
   formateurs,
+  canManage,
   onRefresh,
   onCreate,
   onUpdate,
@@ -137,6 +139,7 @@ export const FormateursDirectory: React.FC<Props> = ({
 
   const handleQuickAdd = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManage) return;
     if (!newNom.trim()) {
       showNotification('Veuillez renseigner un Nom & Prénom.', 'error');
       return;
@@ -171,6 +174,7 @@ export const FormateursDirectory: React.FC<Props> = ({
   };
 
   const startInlineEdit = (f: Formateur) => {
+    if (!canManage) return;
     setInlineEditingId(f.id);
     setEditNom(f.nomComplet);
     setEditEmail(f.email || '');
@@ -186,6 +190,7 @@ export const FormateursDirectory: React.FC<Props> = ({
   };
 
   const saveInlineEdit = async (id: string) => {
+    if (!canManage) return;
     if (!editNom.trim()) {
       showNotification('Le nom ne peut pas être vide.', 'error');
       return;
@@ -214,6 +219,7 @@ export const FormateursDirectory: React.FC<Props> = ({
   };
 
   const confirmDelete = async () => {
+    if (!canManage) return;
     if (!deleteCandidate) return;
     setIsDeleting(true);
     try {
@@ -228,6 +234,7 @@ export const FormateursDirectory: React.FC<Props> = ({
   };
 
   const confirmReset = async () => {
+    if (!canManage) return;
     setIsResetting(true);
     try {
       await onResetDefaults();
@@ -300,7 +307,7 @@ export const FormateursDirectory: React.FC<Props> = ({
             <span className="hidden sm:inline">CSV</span>
           </button>
 
-          <button
+          {canManage && <button
             type="button"
             onClick={() => setShowResetConfirm(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-red-50 hover:text-red-700 text-gray-600 rounded-lg text-xs font-bold transition cursor-pointer"
@@ -308,7 +315,7 @@ export const FormateursDirectory: React.FC<Props> = ({
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span className="hidden md:inline">Réinitialiser</span>
-          </button>
+          </button>}
         </div>
       </div>
 
@@ -339,7 +346,7 @@ export const FormateursDirectory: React.FC<Props> = ({
       )}
 
       {/* Formulaire d'ajout rapide (Choix des qualifications Tram, AB, TB) */}
-      <div className="bg-[#f9fafb] border border-[#e5e7eb] rounded-xl p-4 sm:p-5 mb-5 shadow-xs">
+      {canManage && <div className="bg-[#f9fafb] border border-[#e5e7eb] rounded-xl p-4 sm:p-5 mb-5 shadow-xs">
         <h3
           className="text-sm font-bold text-[#FD5312] uppercase tracking-wide mb-3"
           style={{ fontFamily: "'HelveticaNeue LT COM 65 MD', 'Helvetica Neue LT Com 65 Md', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}
@@ -468,7 +475,7 @@ export const FormateursDirectory: React.FC<Props> = ({
             </div>
           </div>
         </form>
-      </div>
+      </div>}
 
       {/* Barre de Recherche et Filtres */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 no-print">
@@ -505,9 +512,9 @@ export const FormateursDirectory: React.FC<Props> = ({
 
         <div className="flex flex-col justify-end">
           <div className="flex flex-wrap items-center justify-between text-xs text-gray-500 pb-1 gap-2">
-            <span className="italic text-[12px] text-gray-500">
+            {canManage && <span className="italic text-[12px] text-gray-500">
               Les modifications ou ajouts mettent à jour automatiquement l'application.
-            </span>
+            </span>}
             <div className="flex items-center gap-1.5 ml-auto flex-wrap">
               <button
                 type="button"
@@ -600,18 +607,18 @@ export const FormateursDirectory: React.FC<Props> = ({
               >
                 Numéro Portable
               </th>
-              <th
+              {canManage && <th
                 className="p-3.5 no-print w-44 text-right"
                 style={{ fontFamily: "'HelveticaNeue LT COM 65 MD', 'Helvetica Neue LT Com 65 Md', 'Helvetica Neue', Helvetica, Arial, sans-serif" }}
               >
                 Actions
-              </th>
+              </th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {filteredFormateurs.length === 0 ? (
               <tr>
-                <td colSpan={4} className="p-8 text-center text-gray-500 text-xs">
+                <td colSpan={canManage ? 4 : 3} className="p-8 text-center text-gray-500 text-xs">
                   Aucun formateur trouvé pour « {searchQuery} ».
                 </td>
               </tr>
@@ -619,7 +626,7 @@ export const FormateursDirectory: React.FC<Props> = ({
               filteredFormateurs.map((f) => {
                 const emailOk = validerEmail(f.email);
                 const { estValide: mobileOk, formate: mobileFormate } = validerEtFormaterMobile(f.mobile || f.telephone);
-                const isEditingThis = inlineEditingId === f.id;
+                const isEditingThis = canManage && inlineEditingId === f.id;
 
                 return (
                   <tr key={f.id} className="hover:bg-gray-50/90 transition">
@@ -774,7 +781,7 @@ export const FormateursDirectory: React.FC<Props> = ({
                     </td>
 
                     {/* Actions (ÉDITER / SUPPR. exactly as in screenshot) */}
-                    <td className="p-3.5 text-right no-print">
+                    {canManage && <td className="p-3.5 text-right no-print">
                       {isEditingThis ? (
                         <div className="flex items-center justify-end gap-1.5">
                           <button
@@ -813,7 +820,7 @@ export const FormateursDirectory: React.FC<Props> = ({
                           </button>
                         </div>
                       )}
-                    </td>
+                    </td>}
                   </tr>
                 );
               })
@@ -823,7 +830,7 @@ export const FormateursDirectory: React.FC<Props> = ({
       </div>
 
       {/* Confirmation Modal for Deletion */}
-      {deleteCandidate && (
+      {canManage && deleteCandidate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
             <div className="bg-red-600 p-4 text-white flex items-center gap-2">
@@ -877,7 +884,7 @@ export const FormateursDirectory: React.FC<Props> = ({
       )}
 
       {/* Confirmation Modal for Resetting to Defaults */}
-      {showResetConfirm && (
+      {canManage && showResetConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-xs p-4 animate-in fade-in">
           <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
             <div className="bg-[#FD5312] p-4 text-white flex items-center gap-2">
@@ -923,10 +930,11 @@ export const FormateursDirectory: React.FC<Props> = ({
           formateur={selectedFormateur}
           onClose={() => setSelectedFormateur(null)}
           onEdit={() => {
+            if (!canManage) return;
             startInlineEdit(selectedFormateur);
             setSelectedFormateur(null);
           }}
-          canEdit={true}
+          canEdit={canManage}
         />
       )}
 
