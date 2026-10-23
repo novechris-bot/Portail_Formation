@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
+import { pool } from './src/services/database';
 
 dotenv.config();
 
@@ -502,12 +503,33 @@ app.post('/api/auth/change-password', requireAuth, (req, res) => {
 // ==========================================================
 
 // Get all formateurs (search, filter, sort)
-app.get('/api/formateurs', requireAuth, (req, res) => {
+
+async function loadFormateursFromDatabase(): Promise<StoredFormateur[]> {
+  const result = await pool.query(
+    'SELECT data FROM tpg_private.formateurs ORDER BY id'
+  );
+
+  return result.rows.map((row) => {
+    const f = row.data as StoredFormateur;
+
+    return {
+      ...f,
+      hasTram: f.hasTram !== undefined ? Boolean(f.hasTram) : Boolean(f.isTramway),
+      hasAB: f.hasAB !== undefined ? Boolean(f.hasAB) : true,
+      hasTB: f.hasTB !== undefined ? Boolean(f.hasTB) : true,
+      hasCTT: Boolean(f.hasCTT),
+      isTramway: f.hasTram !== undefined ? Boolean(f.hasTram) : Boolean(f.isTramway)
+    };
+  });
+}
+
+app.get('/api/formateurs', requireAuth, async (req, res) => {
   const q = String(req.query.q || '').trim();
   const qualification = String(req.query.type || 'all');
   const sort = String(req.query.sort || 'asc');
-
-  let list = loadFormateurs();
+  
+  try {
+  let list = await loadFormateursFromDatabase();
 
   if (q) {
     const queryNorm = normalizeStr(q);
@@ -533,10 +555,16 @@ app.get('/api/formateurs', requireAuth, (req, res) => {
     return sort === 'desc' ? -comp : comp;
   });
 
-  res.json({
+    res.json({
     total: list.length,
     formateurs: list
   });
+} catch (error) {
+  console.error('Erreur de lecture des formateurs depuis Supabase :', error);
+  res.status(500).json({
+    error: 'Impossible de charger les formateurs.'
+  });
+}
 });
 
 // Discrepancy & Source Audit Report (must be before :id route)
