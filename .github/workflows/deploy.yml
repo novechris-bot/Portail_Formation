@@ -31,7 +31,10 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: Compiler l'application
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
         run: npm run build
+
 
       - name: Configurer GitHub Pages
         uses: actions/configure-pages@v5
