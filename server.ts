@@ -329,6 +329,19 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
     res.status(401).json({ error: 'Non authentifié. Session expirée ou invalide.' });
     return;
   }
+function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  const session = (req as any).user as Session;
+
+  if (!session || session.role !== 'admin') {
+    res.status(403).json({
+      error: 'Accès refusé. Privilèges Administrateur requis.'
+    });
+    return;
+  }
+
+  next();
+}
+
   (req as any).user = session;
   next();
 }
