@@ -360,7 +360,6 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
 
   (req as any).user = session;
   next();
-}
 
 function requireAdminOrResp(req: Request, res: Response, next: NextFunction) {
   const session = (req as any).user as Session;
