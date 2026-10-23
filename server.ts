@@ -326,10 +326,21 @@ function getSessionFromRequest(req: Request): Session | null {
 
 function requireAuth(req: Request, res: Response, next: NextFunction) {
   const session = getSessionFromRequest(req);
+  
+function requireAuth(req: Request, res: Response, next: NextFunction) {
+  const session = getSessionFromRequest(req);
+
   if (!session) {
-    res.status(401).json({ error: 'Non authentifié. Session expirée ou invalide.' });
+    res.status(401).json({
+      error: 'Non authentifié. Session expirée ou invalide.'
+    });
     return;
   }
+
+  (req as any).user = session;
+  next();
+}
+
 function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const session = (req as any).user as Session;
 
@@ -339,6 +350,10 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
     });
     return;
   }
+
+  next();
+}
+
 
   next();
 }
