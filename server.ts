@@ -324,9 +324,8 @@ function getSessionFromRequest(req: Request): Session | null {
   return session;
 }
 
-function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const session = getSessionFromRequest(req);
-  
+
+
 function requireAuth(req: Request, res: Response, next: NextFunction) {
   const session = getSessionFromRequest(req);
 
@@ -354,12 +353,6 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-
-  next();
-}
-
-  (req as any).user = session;
-  next();
 
 function requireAdminOrResp(req: Request, res: Response, next: NextFunction) {
   const session = (req as any).user as Session;
