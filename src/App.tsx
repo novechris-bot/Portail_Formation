@@ -18,6 +18,7 @@ import { ShieldCheck, Info } from 'lucide-react';
 
 const MainApp: React.FC = () => {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const canManageFormateurs = user?.role === 'admin';
   const [activeTab, setActiveTab] = useState<string>('cours');
   const [formateurs, setFormateurs] = useState<Formateur[]>([]);
   const [config, setConfig] = useState<AppConfig | null>(null);
@@ -47,21 +48,25 @@ const MainApp: React.FC = () => {
   }, [isAuthenticated, loadData]);
 
   const handleCreateFormateur = async (data: Partial<Formateur>) => {
+    if (!canManageFormateurs) throw new Error('Accès réservé à l’administrateur.');
     await api.formateurs.create(data);
     await loadData();
   };
 
   const handleUpdateFormateur = async (id: string, data: Partial<Formateur>) => {
+    if (!canManageFormateurs) throw new Error('Accès réservé à l’administrateur.');
     await api.formateurs.update(id, data);
     await loadData();
   };
 
   const handleDeleteFormateur = async (id: string) => {
+    if (!canManageFormateurs) throw new Error('Accès réservé à l’administrateur.');
     await api.formateurs.delete(id);
     await loadData();
   };
 
   const handleResetDefaults = async () => {
+    if (!canManageFormateurs) throw new Error('Accès réservé à l’administrateur.');
     await api.formateurs.resetDefault();
     await loadData();
   };
@@ -155,6 +160,7 @@ const MainApp: React.FC = () => {
                 {activeTab === 'formateurs' && (
                   <FormateursDirectory
                     formateurs={formateurs}
+                    canManage={canManageFormateurs}
                     onRefresh={loadData}
                     onCreate={handleCreateFormateur}
                     onUpdate={handleUpdateFormateur}
