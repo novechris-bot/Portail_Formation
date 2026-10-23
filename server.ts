@@ -624,192 +624,203 @@ app.get('/api/formateurs/audit', requireAuth, (req, res) => {
   });
 });
 
-// Reset formateurs to strict source list (must be before :id route)
-app.post('/api/formateurs/reset-default', requireAuth, requireAdminOrResp, (req, res) => {
-  const defaults = generateDefaultFormateurs();
-  saveFormateurs(defaults);
-  res.json({
-    success: true,
-    total: defaults.length,
-    message: 'La liste des formateurs a été réinitialisée selon le fichier source officiel v20.'
+// The historic reset action must never overwrite the persistent Supabase directory.
+app.post('/api/formateurs/reset-default', requireAuth, requireAdmin, (_req, res) => {
+  res.status(409).json({
+    error: 'Réinitialisation désactivée pour protéger les données enregistrées dans Supabase.'
   });
 });
 
-// Get individual formateur
-app.get('/api/formateurs/:id', requireAuth, (req, res) => {
-  const { id } = req.params;
-  const list = loadFormateurs();
-  const found = list.find(f => String(f.id) === String(id));
-  if (!found) {
-    res.status(404).json({ error: 'Formateur non trouvé.' });
-    return;
+// Read an individual formateur from the same persistent source as the directory.
+app.get('/api/formateurs/:id', requireAuth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT data FROM tpg_private.formateurs WHERE id = $1',
+      [String(req.params.id)]
+    );
+    if (result.rowCount === 0) {
+      res.status(404).json({ error: 'Formateur non trouvé.' });
+      return;
+    }
+    res.json(result.rows[0].data);
+  } catch (error) {
+    console.error('Erreur de lecture du formateur dans Supabase :', error);
+    res.status(500).json({ error: 'Impossible de charger ce formateur.' });
   }
-  res.json(found);
 });
 
-// Create formateur
-app.post('/api/formateurs', requireAuth, requireAdmin, (req, res) => {
-  const { nom, email, mobile, prenom, acronyme, isTramway, hasTram, hasAB, hasTB, hasCTT, isRailsGlissants, telephone, notes } = req.body;
-
-  let cleanNomComplet = (nom || '').trim();
-  let cleanPrenom = (prenom || '').trim();
-  let cleanNom = '';
-
-  if (!cleanNomComplet && (!prenom || !nom)) {
+// Create a formateur in Supabase; never write a local JSON copy.
+app.post('/api/formateurs', requireAuth, requireAdmin, async (req, res) => {
+  const { nom, email, mobile, prenom, acronyme, isTramway, hasTram, hasAB, hasTB, hasCTT, isRailsGlissants, telephone, notes } = req.body || {};
+  if (typeof nom !== 'string' || !nom.trim()) {
     res.status(400).json({ error: 'Le nom est obligatoire.' });
     return;
   }
-
+  if (prenom !== undefined && typeof prenom !== 'string') {
+    res.status(400).json({ error: 'Prénom invalide.' });
+    return;
+  }
+  let cleanNomComplet = nom.trim();
+  let cleanPrenom = (prenom || '').trim();
+  let cleanNom = '';
   if (cleanNomComplet && !cleanPrenom) {
     const split = splitPrenomNom(cleanNomComplet);
     cleanPrenom = split.prenom;
     cleanNom = split.nom;
   } else {
-    cleanNom = (nom || '').trim();
+    cleanNom = cleanNomComplet;
     cleanNomComplet = `${cleanPrenom} ${cleanNom}`.trim();
   }
-
-  const list = loadFormateurs();
-  const duplicate = list.some(f => normalizeStr(f.nomComplet) === normalizeStr(cleanNomComplet));
-  if (duplicate) {
-    res.status(409).json({ error: `Un formateur avec le nom "${cleanNomComplet}" existe déjà.` });
-    return;
-  }
-
   const tramQualif = hasTram !== undefined ? Boolean(hasTram) : Boolean(isTramway);
-  const abQualif = hasAB !== undefined ? Boolean(hasAB) : true;
-  const tbQualif = hasTB !== undefined ? Boolean(hasTB) : true;
-  const cttQualif = Boolean(hasCTT);
-
   const newFormateur: StoredFormateur = {
-    id: String(Date.now()),
+    id: crypto.randomUUID(),
     prenom: cleanPrenom,
     nom: cleanNom,
     nomComplet: cleanNomComplet,
-    acronyme: acronyme ? acronyme.trim().toUpperCase() : '',
+    acronyme: typeof acronyme === 'string' ? acronyme.trim().toUpperCase() : '',
     isTramway: tramQualif,
     hasTram: tramQualif,
-    hasAB: abQualif,
-    hasTB: tbQualif,
-    hasCTT: cttQualif,
+    hasAB: hasAB !== undefined ? Boolean(hasAB) : true,
+    hasTB: hasTB !== undefined ? Boolean(hasTB) : true,
+    hasCTT: Boolean(hasCTT),
     isRailsGlissants: Boolean(isRailsGlissants ?? tramQualif),
-    email: (email || '').trim(),
-    mobile: (mobile || telephone || '').trim(),
-    telephone: (mobile || telephone || '').trim(),
-    notes: notes ? notes.trim() : undefined,
+    email: typeof email === 'string' ? email.trim() : '',
+    mobile: typeof mobile === 'string' ? mobile.trim() : (typeof telephone === 'string' ? telephone.trim() : ''),
+    telephone: typeof mobile === 'string' ? mobile.trim() : (typeof telephone === 'string' ? telephone.trim() : ''),
+    notes: typeof notes === 'string' ? notes.trim() : undefined,
     dateAjout: new Date().toISOString().split('T')[0],
     sourceOrigin: 'manuel'
   };
-
-  list.push(newFormateur);
-  saveFormateurs(list);
-
-  const users = loadUsers();
-  const username = (cleanPrenom + '.' + cleanNom).toLowerCase().replace(/[^a-z0-9.]/g, '') || `user${newFormateur.id}`;
-  if (!users.some(u => u.username === username)) {
-    users.push({
-      id: `usr-${newFormateur.id}`,
-      username,
-      passwordHash: bcrypt.hashSync('TpgFormation2026!', bcrypt.genSaltSync(10)),
-      nomComplet: cleanNomComplet,
-      role: 'formateur',
-      formateurId: newFormateur.id
-    });
-    saveUsers(users);
+  try {
+    // Serialize concurrent creates to prevent duplicate names.
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('SELECT pg_advisory_xact_lock($1)', [20261023]);
+      const existing = await client.query('SELECT data FROM tpg_private.formateurs');
+      if (existing.rows.some(row => normalizeStr(String(row.data.nomComplet || '')) === normalizeStr(cleanNomComplet))) {
+        await client.query('ROLLBACK');
+        res.status(409).json({ error: `Un formateur avec le nom "${cleanNomComplet}" existe déjà.` });
+        return;
+      }
+      await client.query(
+        'INSERT INTO tpg_private.formateurs (id, data) VALUES ($1, $2::jsonb)',
+        [newFormateur.id, JSON.stringify(newFormateur)]
+      );
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+    // Creating a login account is deliberately separate from adding a directory entry.
+    res.status(201).json({ success: true, formateur: newFormateur, message: 'Formateur créé avec succès dans Supabase.' });
+  } catch (error) {
+    console.error('Erreur de création du formateur dans Supabase :', error);
+    res.status(500).json({ error: 'Impossible d’enregistrer le formateur dans Supabase.' });
   }
-
-  res.status(201).json({
-    success: true,
-    formateur: newFormateur,
-    message: 'Formateur créé avec succès.'
-  });
 });
 
-// Update formateur
-app.put('/api/formateurs/:id', requireAuth, requireAdmin, (req, res) => {
+// Update a formateur in Supabase without changing its ID or other fields.
+app.put('/api/formateurs/:id', requireAuth, requireAdmin, async (req, res) => {
   const { id } = req.params;
-  const { nom, email, mobile, prenom, acronyme, isTramway, hasTram, hasAB, hasTB, hasCTT, isRailsGlissants, telephone, notes } = req.body;
-
-  const list = loadFormateurs();
-  const index = list.findIndex(f => String(f.id) === String(id));
-  if (index === -1) {
-    res.status(404).json({ error: 'Formateur non trouvé.' });
-    return;
+  const body = req.body || {};
+  const { nom, email, mobile, prenom, acronyme, isTramway, hasTram, hasAB, hasTB, hasCTT, isRailsGlissants, telephone, notes } = body;
+  try {
+    const client = await pool.connect();
+    let updated: StoredFormateur;
+    try {
+      await client.query('BEGIN');
+      const result = await client.query(
+        'SELECT data FROM tpg_private.formateurs WHERE id = $1 FOR UPDATE',
+        [String(id)]
+      );
+      if (result.rowCount === 0) {
+        await client.query('ROLLBACK');
+        res.status(404).json({ error: 'Formateur non trouvé.' });
+        return;
+      }
+      const previous = result.rows[0].data as StoredFormateur;
+      const textField = (value: unknown, fallback: string) => typeof value === 'string' ? value.trim() : fallback;
+      const cleanNomComplet = textField(nom, previous.nomComplet);
+      if (!cleanNomComplet) {
+        await client.query('ROLLBACK');
+        res.status(400).json({ error: 'Le nom est obligatoire.' });
+        return;
+      }
+      let cleanPrenom = textField(prenom, previous.prenom);
+      let cleanNom = previous.nom;
+      let fullName = cleanNomComplet;
+      if (typeof nom === 'string' && prenom === undefined) {
+        const split = splitPrenomNom(cleanNomComplet);
+        cleanPrenom = split.prenom;
+        cleanNom = split.nom;
+      } else if (typeof nom === 'string' && typeof prenom === 'string') {
+        // The existing frontend sends 'nom' as the full display name.
+        cleanNom = splitPrenomNom(cleanNomComplet).nom;
+      } else if (typeof prenom === 'string') {
+        fullName = `${cleanPrenom} ${cleanNom}`.trim();
+      }
+      const updatedHasTram = hasTram !== undefined ? Boolean(hasTram) : (isTramway !== undefined ? Boolean(isTramway) : Boolean(previous.hasTram ?? previous.isTramway));
+      updated = {
+        ...previous,
+        prenom: cleanPrenom,
+        nom: cleanNom,
+        nomComplet: fullName,
+        email: textField(email, previous.email),
+        mobile: textField(mobile, textField(telephone, previous.mobile)),
+        telephone: textField(telephone, textField(mobile, previous.telephone || previous.mobile)),
+        acronyme: textField(acronyme, previous.acronyme || '').toUpperCase(),
+        isTramway: updatedHasTram,
+        hasTram: updatedHasTram,
+        hasAB: hasAB !== undefined ? Boolean(hasAB) : Boolean(previous.hasAB ?? true),
+        hasTB: hasTB !== undefined ? Boolean(hasTB) : Boolean(previous.hasTB ?? true),
+        hasCTT: hasCTT !== undefined ? Boolean(hasCTT) : Boolean(previous.hasCTT),
+        isRailsGlissants: isRailsGlissants !== undefined ? Boolean(isRailsGlissants) : previous.isRailsGlissants,
+        notes: textField(notes, previous.notes || '')
+      };
+      const all = await client.query('SELECT id, data FROM tpg_private.formateurs WHERE id <> $1', [String(id)]);
+      if (all.rows.some(row => normalizeStr(String(row.data.nomComplet || '')) === normalizeStr(updated.nomComplet))) {
+        await client.query('ROLLBACK');
+        res.status(409).json({ error: 'Un autre formateur porte déjà ce nom.' });
+        return;
+      }
+      await client.query(
+        'UPDATE tpg_private.formateurs SET data = $2::jsonb, updated_at = NOW() WHERE id = $1',
+        [String(id), JSON.stringify(updated)]
+      );
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+    res.json({ success: true, formateur: updated!, message: 'Formateur mis à jour avec succès dans Supabase.' });
+  } catch (error) {
+    console.error('Erreur de modification du formateur dans Supabase :', error);
+    res.status(500).json({ error: 'Impossible de modifier le formateur dans Supabase.' });
   }
-
-  let cleanNomComplet = (nom || list[index].nomComplet).trim();
-  let cleanPrenom = prenom !== undefined ? prenom.trim() : list[index].prenom;
-  let cleanNom = list[index].nom;
-
-  if (nom && !prenom) {
-    const split = splitPrenomNom(cleanNomComplet);
-    cleanPrenom = split.prenom;
-    cleanNom = split.nom;
-  }
-
-  const updatedHasTram = hasTram !== undefined ? Boolean(hasTram) : (isTramway !== undefined ? Boolean(isTramway) : (list[index].hasTram ?? list[index].isTramway));
-  const updatedHasAB = hasAB !== undefined ? Boolean(hasAB) : (list[index].hasAB ?? true);
-  const updatedHasTB = hasTB !== undefined ? Boolean(hasTB) : (list[index].hasTB ?? true);
-  const updatedHasCTT = hasCTT !== undefined ? Boolean(hasCTT) : Boolean(list[index].hasCTT);
-
-  list[index] = {
-    ...list[index],
-    prenom: cleanPrenom,
-    nom: cleanNom,
-    nomComplet: cleanNomComplet,
-    email: email !== undefined ? email.trim() : list[index].email,
-    mobile: mobile !== undefined ? mobile.trim() : (telephone !== undefined ? telephone.trim() : list[index].mobile),
-    telephone: telephone !== undefined ? telephone.trim() : (mobile !== undefined ? mobile.trim() : list[index].telephone),
-    acronyme: acronyme !== undefined ? acronyme.trim().toUpperCase() : list[index].acronyme,
-    isTramway: updatedHasTram,
-    hasTram: updatedHasTram,
-    hasAB: updatedHasAB,
-    hasTB: updatedHasTB,
-    hasCTT: updatedHasCTT,
-    isRailsGlissants: isRailsGlissants !== undefined ? Boolean(isRailsGlissants) : list[index].isRailsGlissants,
-    notes: notes !== undefined ? notes.trim() : list[index].notes
-  };
-
-  saveFormateurs(list);
-
-  const users = loadUsers();
-  const user = users.find(u => String(u.formateurId) === String(id));
-  if (user) {
-    user.nomComplet = cleanNomComplet;
-    saveUsers(users);
-  }
-
-  res.json({
-    success: true,
-    formateur: list[index],
-    message: 'Formateur mis à jour avec succès.'
-  });
 });
 
-// Delete formateur
-app.delete('/api/formateurs/:id', requireAuth, requireAdmin, (req, res) => {
-  const { id } = req.params;
-  const list = loadFormateurs();
-  const index = list.findIndex(f => String(f.id) === String(id));
-  if (index === -1) {
-    res.status(404).json({ error: 'Formateur non trouvé.' });
-    return;
+// Delete only the directory entry. Account management remains a separate admin task.
+app.delete('/api/formateurs/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'DELETE FROM tpg_private.formateurs WHERE id = $1 RETURNING data',
+      [String(req.params.id)]
+    );
+    if (result.rowCount === 0) {
+      res.status(404).json({ error: 'Formateur non trouvé.' });
+      return;
+    }
+    const deleted = result.rows[0].data as StoredFormateur;
+    res.json({ success: true, message: `Formateur ${deleted.nomComplet} supprimé avec succès.` });
+  } catch (error) {
+    console.error('Erreur de suppression du formateur dans Supabase :', error);
+    res.status(500).json({ error: 'Impossible de supprimer le formateur dans Supabase.' });
   }
-
-  const deleted = list.splice(index, 1)[0];
-  saveFormateurs(list);
-
-  const users = loadUsers();
-  const userIdx = users.findIndex(u => String(u.formateurId) === String(id));
-  if (userIdx !== -1) {
-    users.splice(userIdx, 1);
-    saveUsers(users);
-  }
-
-  res.json({
-    success: true,
-    message: `Formateur ${deleted.nomComplet} supprimé avec succès.`
-  });
 });
 
 // App configuration (mail routes, etc.)
