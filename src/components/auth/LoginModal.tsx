@@ -24,11 +24,6 @@ export const LoginModal: React.FC = () => {
     }
   };
 
-  const handleQuickFill = (u: string, p: string) => {
-    setIdentifier(u);
-    setPassword(p);
-    setError(null);
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/80 backdrop-blur-md p-4 animate-in fade-in">
