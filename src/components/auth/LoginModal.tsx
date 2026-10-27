@@ -32,7 +32,7 @@ export const LoginModal: React.FC = () => {
         <div className="bg-[#FD5312] p-6 text-white text-center">
           <div className="flex items-center justify-center mb-3">
             <img
-              src="/Portail_Formation/assets/aistudio/Logo_tpg_blanc-removebg-preview_c2267cb4.png"
+              src={`${import.meta.env.BASE_URL}assets/aistudio/Logo_tpg_blanc-removebg-preview_c2267cb4.png`}
               alt="Logo TPG"
               className="h-11 w-auto object-contain"
             />
