@@ -29,7 +29,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab, formate
         <div className="flex items-center gap-3.5">
           <div className="h-10 sm:h-12 w-auto flex items-center shrink-0">
             <img
-              src="/assets/aistudio/Logo_tpg_blanc-removebg-preview_c2267cb4.png"
+              src={`${import.meta.env.BASE_URL}assets/aistudio/Logo_tpg_blanc-removebg-preview_c2267cb4.png`}
               alt="Logo officiel TPG"
               className="h-9 sm:h-11 w-auto max-w-[130px] sm:max-w-[150px] object-contain drop-shadow-xs"
             />
