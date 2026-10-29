@@ -17,7 +17,6 @@ const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const IS_PROD = process.env.NODE_ENV === 'production';
 
-
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.setHeader('Access-Control-Allow-Origin', 'https://portail-formation-tpg.github.io');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -34,7 +33,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 app.use(express.json());
 app.use(cookieParser());
-
 
 // Data storage directory
 const DATA_DIR = path.join(__dirname, 'data');
@@ -74,8 +72,8 @@ export interface StoredUser {
   nomComplet: string;
   role: 'admin' | 'responsable' | 'formateur';
   formateurId?: string;
-  mustChangePassword?: boolean;  // ← AJOUTE CECI
-  createdAt?: string;            // ← AJOUTE CECI
+  mustChangePassword?: boolean;
+  createdAt?: string;
 }
 
 export interface Session {
@@ -191,7 +189,6 @@ function loadFormateurs(): StoredFormateur[] {
     if (fs.existsSync(FORMATEURS_FILE)) {
       const data = fs.readFileSync(FORMATEURS_FILE, 'utf-8');
       const parsed = JSON.parse(data);
-      // Validate that it has v20 structure (mobile present)
       if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].mobile) {
         return parsed.map((f: any) => ({
           ...f,
@@ -222,14 +219,14 @@ function initUsers(): StoredUser[] {
   const respHash = bcrypt.hashSync('RespTpg2026!', salt);
   const formateurDefaultHash = bcrypt.hashSync('TpgFormation2026!', salt);
 
-    const users: StoredUser[] = [
+  const users: StoredUser[] = [
     {
       id: 'usr-admin',
       username: 'admin',
       passwordHash: adminHash,
       nomComplet: 'Administrateur TPG',
       role: 'admin',
-      mustChangePassword: true,  // ← AJOUTE CECI
+      mustChangePassword: true,
       createdAt: new Date().toISOString()
     },
     {
@@ -238,14 +235,13 @@ function initUsers(): StoredUser[] {
       passwordHash: respHash,
       nomComplet: 'Responsable Formation TPG',
       role: 'responsable',
-      mustChangePassword: true,  // ← AJOUTE CECI
+      mustChangePassword: true,
       createdAt: new Date().toISOString()
     }
   ];
 
-  // Seed formateurs as accounts
   const formateurs = loadFormateurs();
-    formateurs.forEach(f => {
+  formateurs.forEach(f => {
     const username = (f.prenom + '.' + f.nom).toLowerCase().replace(/[^a-z0-9.]/g, '');
     users.push({
       id: `usr-${f.id}`,
@@ -254,7 +250,7 @@ function initUsers(): StoredUser[] {
       nomComplet: f.nomComplet,
       role: 'formateur',
       formateurId: f.id,
-      mustChangePassword: true,  // ← AJOUTE CECI
+      mustChangePassword: true,
       createdAt: new Date().toISOString()
     });
   });
@@ -303,7 +299,6 @@ const DEFAULT_CONFIG = {
     avarie_joncttb: 'Resp.equipesCMJ2@tpg.ch,Equipes_Planification_CMJ@tpg.ch',
     horaire_to: 'bex@tpg.ch'
   },
-  // Exact v20 options for Trolleybus in Module 5
   vtbOptions: ['TB 760', 'TB 766', 'TB 1636']
 };
 
@@ -348,8 +343,6 @@ function getSessionFromRequest(req: Request): Session | null {
   return session;
 }
 
-
-
 function requireAuth(req: Request, res: Response, next: NextFunction) {
   const session = getSessionFromRequest(req);
 
@@ -376,7 +369,6 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
 
   next();
 }
-
 
 function requireAdminOrResp(req: Request, res: Response, next: NextFunction) {
   const session = (req as any).user as Session;
@@ -439,72 +431,7 @@ app.post('/api/auth/login', (req, res) => {
     if (normalizeStr(u.nomComplet) === normalizedId) return true;
     return false;
   });
-// Réinitialiser le mot de passe d'un formateur (admin uniquement)
-app.post('/api/formateurs/:id/reset-password', requireAuth, requireAdmin, async (req, res) => {
-  const { id } = req.params;
 
-  try {
-    // Vérifier que le formateur existe dans Supabase
-    const formateurResult = await pool.query(
-      'SELECT data FROM tpg_private.formateurs WHERE id = $1',
-      [String(id)]
-    );
-
-    if (formateurResult.rowCount === 0) {
-      res.status(404).json({ error: 'Formateur non trouvé.' });
-      return;
-    }
-
-    const formateur = formateurResult.rows[0].data as StoredFormateur;
-
-    // Trouver l'utilisateur
-    const users = loadUsers();
-    const userIndex = users.findIndex(u => u.formateurId === String(id));
-
-    if (userIndex === -1) {
-      res.status(404).json({ error: 'Aucun compte utilisateur associé à ce formateur.' });
-      return;
-    }
-
-    // Générer nouveau mot de passe temporaire
-    const tempPassword = generateTempPassword();
-    users[userIndex].passwordHash = bcrypt.hashSync(tempPassword, bcrypt.genSaltSync(10));
-    saveUsers(users);
-
-    console.log(`🔄 Mot de passe réinitialisé pour ${formateur.nomComplet}: ${users[userIndex].username} / ${tempPassword}`);
-
-    res.json({
-      success: true,
-      message: 'Mot de passe réinitialisé avec succès.',
-      credentials: {
-        username: users[userIndex].username,
-        tempPassword: tempPassword, // ⚠️ À communiquer au formateur
-        mustChangePassword: true
-      },
-      formateur: {
-        id: formateur.id,
-        nomComplet: formateur.nomComplet
-      }
-    });
-
-  } catch (error) {
-    console.error('Erreur de réinitialisation du mot de passe :', error);
-    res.status(500).json({ error: 'Impossible de réinitialiser le mot de passe.' });
-  }
-});
-
-// Vérifier si un formateur a un compte
-app.get('/api/formateurs/:id/account-status', requireAuth, requireAdmin, async (req, res) => {
-  const { id } = req.params;
-  const users = loadUsers();
-  const user = users.find(u => u.formateurId === String(id));
-
-  res.json({
-    hasAccount: !!user,
-    username: user?.username || null,
-    role: user?.role || null
-  });
-});
   if (!matchedUser) {
     res.status(401).json({ error: 'Identifiant ou mot de passe incorrect.' });
     return;
@@ -538,7 +465,7 @@ app.get('/api/formateurs/:id/account-status', requireAuth, requireAdmin, async (
     maxAge: SESSION_DURATION_MS
   });
 
-    res.json({
+  res.json({
     success: true,
     token,
     user: {
@@ -548,9 +475,10 @@ app.get('/api/formateurs/:id/account-status', requireAuth, requireAdmin, async (
       role: session.role,
       formateurId: session.formateurId,
       expiresAt: session.expiresAt,
-      mustChangePassword: matchedUser.mustChangePassword || false  // ← AJOUTE CECI
+      mustChangePassword: matchedUser.mustChangePassword || false
     }
   });
+});
 
 // Auth: Logout
 app.post('/api/auth/logout', (req, res) => {
@@ -604,8 +532,8 @@ app.post('/api/auth/change-password', requireAuth, (req, res) => {
     return;
   }
 
-    user.passwordHash = bcrypt.hashSync(newPassword, bcrypt.genSaltSync(10));
-  user.mustChangePassword = false;  // ← AJOUTE CECI
+  user.passwordHash = bcrypt.hashSync(newPassword, bcrypt.genSaltSync(10));
+  user.mustChangePassword = false;
   saveUsers(users);
 
   res.json({ success: true, message: 'Mot de passe mis à jour avec succès.' });
@@ -614,8 +542,6 @@ app.post('/api/auth/change-password', requireAuth, (req, res) => {
 // ==========================================================
 // FORMATEURS CRUD & SEARCH
 // ==========================================================
-
-// Get all formateurs (search, filter, sort)
 
 async function loadFormateursFromDatabase(): Promise<StoredFormateur[]> {
   const result = await pool.query(
@@ -636,48 +562,49 @@ async function loadFormateursFromDatabase(): Promise<StoredFormateur[]> {
   });
 }
 
+// Get all formateurs (search, filter, sort)
 app.get('/api/formateurs', requireAuth, async (req, res) => {
   const q = String(req.query.q || '').trim();
   const qualification = String(req.query.type || 'all');
   const sort = String(req.query.sort || 'asc');
-  
+
   try {
-  let list = await loadFormateursFromDatabase();
+    let list = await loadFormateursFromDatabase();
 
-  if (q) {
-    const queryNorm = normalizeStr(q);
-    list = list.filter(f => {
-      const nomMatch = normalizeStr(f.nom).includes(queryNorm);
-      const prenomMatch = normalizeStr(f.prenom).includes(queryNorm);
-      const completMatch = normalizeStr(f.nomComplet).includes(queryNorm);
-      const acronymeMatch = f.acronyme ? normalizeStr(f.acronyme).includes(queryNorm) : false;
-      const emailMatch = f.email ? normalizeStr(f.email).includes(queryNorm) : false;
-      const mobileMatch = f.mobile ? normalizeStr(f.mobile).includes(queryNorm) : false;
-      return nomMatch || prenomMatch || completMatch || acronymeMatch || emailMatch || mobileMatch;
+    if (q) {
+      const queryNorm = normalizeStr(q);
+      list = list.filter(f => {
+        const nomMatch = normalizeStr(f.nom).includes(queryNorm);
+        const prenomMatch = normalizeStr(f.prenom).includes(queryNorm);
+        const completMatch = normalizeStr(f.nomComplet).includes(queryNorm);
+        const acronymeMatch = f.acronyme ? normalizeStr(f.acronyme).includes(queryNorm) : false;
+        const emailMatch = f.email ? normalizeStr(f.email).includes(queryNorm) : false;
+        const mobileMatch = f.mobile ? normalizeStr(f.mobile).includes(queryNorm) : false;
+        return nomMatch || prenomMatch || completMatch || acronymeMatch || emailMatch || mobileMatch;
+      });
+    }
+
+    if (qualification === 'tram') {
+      list = list.filter(f => f.isTramway);
+    } else if (qualification === 'rails') {
+      list = list.filter(f => f.isRailsGlissants);
+    }
+
+    list.sort((a, b) => {
+      const comp = a.nomComplet.localeCompare(b.nomComplet, 'fr', { sensitivity: 'base' });
+      return sort === 'desc' ? -comp : comp;
     });
-  }
-
-  if (qualification === 'tram') {
-    list = list.filter(f => f.isTramway);
-  } else if (qualification === 'rails') {
-    list = list.filter(f => f.isRailsGlissants);
-  }
-
-  list.sort((a, b) => {
-    const comp = a.nomComplet.localeCompare(b.nomComplet, 'fr', { sensitivity: 'base' });
-    return sort === 'desc' ? -comp : comp;
-  });
 
     res.json({
-    total: list.length,
-    formateurs: list
-  });
-} catch (error) {
-  console.error('Erreur de lecture des formateurs depuis Supabase :', error);
-  res.status(500).json({
-    error: 'Impossible de charger les formateurs.'
-  });
-}
+      total: list.length,
+      formateurs: list
+    });
+  } catch (error) {
+    console.error('Erreur de lecture des formateurs depuis Supabase :', error);
+    res.status(500).json({
+      error: 'Impossible de charger les formateurs.'
+    });
+  }
 });
 
 // Discrepancy & Source Audit Report (must be before :id route)
@@ -740,6 +667,7 @@ app.get('/api/formateurs/:id', requireAuth, async (req, res) => {
 });
 
 // Create a formateur in Supabase; never write a local JSON copy.
+// ✅ CORRIGÉ : Création automatique du compte utilisateur avec mot de passe temporaire
 app.post('/api/formateurs', requireAuth, requireAdmin, async (req, res) => {
   const { nom, email, mobile, prenom, acronyme, isTramway, hasTram, hasAB, hasTB, hasCTT, isRailsGlissants, telephone, notes } = req.body || {};
   if (typeof nom !== 'string' || !nom.trim()) {
@@ -804,7 +732,10 @@ app.post('/api/formateurs', requireAuth, requireAdmin, async (req, res) => {
     } finally {
       client.release();
     }
-        // Créer automatiquement un compte utilisateur avec mot de passe temporaire
+
+    // ============================================================
+    // ✅ CRÉATION AUTOMATIQUE DU COMPTE UTILISATEUR
+    // ============================================================
     const users = loadUsers();
 
     // Générer un username unique basé sur le nom
@@ -844,7 +775,9 @@ app.post('/api/formateurs', requireAuth, requireAdmin, async (req, res) => {
         passwordHash: passwordHash,
         nomComplet: newFormateur.nomComplet,
         role: 'formateur',
-        formateurId: newFormateur.id
+        formateurId: newFormateur.id,
+        mustChangePassword: true,
+        createdAt: new Date().toISOString()
       };
 
       users.push(newUser);
@@ -874,8 +807,81 @@ app.post('/api/formateurs', requireAuth, requireAdmin, async (req, res) => {
     });
   } catch (error) {
     console.error('Erreur de création du formateur dans Supabase :', error);
-    res.status(500).json({ error: 'Impossible d’enregistrer le formateur dans Supabase.' });
+    res.status(500).json({ error: 'Impossible d'enregistrer le formateur dans Supabase.' });
   }
+});
+
+// ============================================================
+// ✅ NOUVELLE ROUTE : Réinitialiser le mot de passe d'un formateur
+// ============================================================
+app.post('/api/formateurs/:id/reset-password', requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Vérifier que le formateur existe dans Supabase
+    const formateurResult = await pool.query(
+      'SELECT data FROM tpg_private.formateurs WHERE id = $1',
+      [String(id)]
+    );
+
+    if (formateurResult.rowCount === 0) {
+      res.status(404).json({ error: 'Formateur non trouvé.' });
+      return;
+    }
+
+    const formateur = formateurResult.rows[0].data as StoredFormateur;
+
+    // Trouver l'utilisateur
+    const users = loadUsers();
+    const userIndex = users.findIndex(u => u.formateurId === String(id));
+
+    if (userIndex === -1) {
+      res.status(404).json({ error: 'Aucun compte utilisateur associé à ce formateur.' });
+      return;
+    }
+
+    // Générer nouveau mot de passe temporaire
+    const tempPassword = generateTempPassword();
+    users[userIndex].passwordHash = bcrypt.hashSync(tempPassword, bcrypt.genSaltSync(10));
+    users[userIndex].mustChangePassword = true;
+    saveUsers(users);
+
+    console.log(`🔄 Mot de passe réinitialisé pour ${formateur.nomComplet}: ${users[userIndex].username} / ${tempPassword}`);
+
+    res.json({
+      success: true,
+      message: 'Mot de passe réinitialisé avec succès.',
+      credentials: {
+        username: users[userIndex].username,
+        tempPassword: tempPassword, // ⚠️ À communiquer au formateur
+        mustChangePassword: true
+      },
+      formateur: {
+        id: formateur.id,
+        nomComplet: formateur.nomComplet
+      }
+    });
+
+  } catch (error) {
+    console.error('Erreur de réinitialisation du mot de passe :', error);
+    res.status(500).json({ error: 'Impossible de réinitialiser le mot de passe.' });
+  }
+});
+
+// ============================================================
+// ✅ NOUVELLE ROUTE : Vérifier si un formateur a un compte
+// ============================================================
+app.get('/api/formateurs/:id/account-status', requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const users = loadUsers();
+  const user = users.find(u => u.formateurId === String(id));
+
+  res.json({
+    hasAccount: !!user,
+    username: user?.username || null,
+    role: user?.role || null,
+    mustChangePassword: user?.mustChangePassword || false
+  });
 });
 
 // Update a formateur in Supabase without changing its ID or other fields.
@@ -913,7 +919,6 @@ app.put('/api/formateurs/:id', requireAuth, requireAdmin, async (req, res) => {
         cleanPrenom = split.prenom;
         cleanNom = split.nom;
       } else if (typeof nom === 'string' && typeof prenom === 'string') {
-        // The existing frontend sends 'nom' as the full display name.
         cleanNom = splitPrenomNom(cleanNomComplet).nom;
       } else if (typeof prenom === 'string') {
         fullName = `${cleanPrenom} ${cleanNom}`.trim();
